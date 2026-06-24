@@ -249,10 +249,14 @@
     // ===== นำ WEB APP URL จาก Apps Script มาใส่ที่นี่ =====
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; 
 
-    // URL ของ Google Sheets (CSV) เพื่อใช้อ่านข้อมูล
+    // URL ของ Google Sheets (CSV) เพื่อใช้อ่านข้อมูลหลัก
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1Ag7yh0SFSqGfm3LTNinHwlwV6h5Xa4M2yIuf03mq2uc/export?format=csv&gid=949197576';
+    
+    // URL ของ Google Sheets (CSV) สำหรับรหัสผ่าน (Tab: รหัสผ่าน)
+    const PASSWORDS_CSV_URL = 'https://docs.google.com/spreadsheets/d/1Ag7yh0SFSqGfm3LTNinHwlwV6h5Xa4M2yIuf03mq2uc/export?format=csv&gid=579789325';
 
     let globalData = [];
+    let salePasswords = {}; // เก็บข้อมูลรหัสผ่านแบบ Dynamic
     let currentJob = null;
 
     // ป้องกัน Cache เพื่อให้ได้ข้อมูลใหม่ล่าสุดเสมอเมื่อเปิดเว็บ
@@ -310,12 +314,31 @@
 
             globalData = parsedData;
 
-            // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
-            const today = new Date();
-            document.getElementById('filter-date').value = formatDateForInput(today);
+            // โหลดรหัสผ่านหลังจากโหลดข้อมูลหลักเสร็จ
+            const passwordFetchUrl = PASSWORDS_CSV_URL + '&t=' + new Date().getTime();
+            Papa.parse(passwordFetchUrl, {
+                download: true,
+                header: true, // กำหนดให้แถวแรกเป็น Header (ชื่อคอลัมน์)
+                skipEmptyLines: true,
+                complete: function(pwdResults) {
+                    const pwdData = pwdResults.data;
+                    pwdData.forEach(row => {
+                        // สมมติว่าคอลัมน์ชื่อ "ฝ่ายขาย" และ "รหัสผ่าน" (อ้างอิงตามรูปตัวอย่าง)
+                        const saleName = row['ฝ่ายขาย'] || row['Sale'] || Object.values(row)[0];
+                        const password = row['รหัสผ่าน'] || row['Password'] || Object.values(row)[1];
+                        if (saleName && password) {
+                            salePasswords[String(saleName).trim()] = String(password).trim();
+                        }
+                    });
 
-            updateSaleDropdown();
-            document.getElementById('btn-login').disabled = false;
+                    // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
+                    const today = new Date();
+                    document.getElementById('filter-date').value = formatDateForInput(today);
+
+                    updateSaleDropdown();
+                    document.getElementById('btn-login').disabled = false;
+                }
+            });
         }
     });
 
@@ -362,17 +385,8 @@
             return;
         }
 
-        const SALE_PASSWORDS = {
-            "Ya": "Ya",
-            "Kat": "Kat",
-            "Image": "Image",
-            "Jay": "Jay",
-            "Bom": "Bom",
-            "SF": "SF"
-        };
-
-        // ตรวจสอบรหัสผ่านที่ฝังไว้ในระบบ
-        const correctPassword = SALE_PASSWORDS[saleName];
+        // ตรวจสอบรหัสผ่านที่ดึงมาจาก Google Sheets (ชีต รหัสผ่าน)
+        const correctPassword = salePasswords[saleName];
 
         if (correctPassword && passwordInput !== correctPassword) {
             Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาตรวจสอบรหัสผ่านอีกครั้งครับ', 'error');
