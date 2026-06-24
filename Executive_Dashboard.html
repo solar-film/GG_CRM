@@ -658,6 +658,7 @@
             #kpi-top-sale > div { gap: 4px !important; margin-top: 2px !important; }
             #kpi-top-sale > div > div { padding: 4px 8px !important; }
             #kpi-top-sale span { font-size: 0.75rem !important; }
+            .hide-on-print { display: none !important; }
             .charts-container { grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem; margin-bottom: 0.8rem; }
             .chart-card { padding: 0.5rem; box-shadow: none; border: 1px solid #cbd5e1; break-inside: avoid; }
             .chart-header { font-size: 0.85rem; color: black !important; margin-bottom: 0.2rem; }
@@ -803,11 +804,11 @@
             <div class="chart-header">👤 สถิติพนักงานขาย (งานหลุด / พบลูกค้า / ยอดขายงานติดตั้ง)</div>
             <div class="chart-canvas-wrapper large"><canvas id="saleChart"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div class="chart-card hide-on-print">
             <div class="chart-header">🏢 สัดส่วนงานหลุด แยกตามแบรนด์ (Brand)</div>
             <div class="chart-canvas-wrapper"><canvas id="companyChart"></canvas></div>
         </div>
-        <div class="chart-card">
+        <div class="chart-card hide-on-print">
             <div class="chart-header">🎯 สัดส่วนงานหลุด แยกตามประเภทลูกค้า</div>
             <div class="chart-canvas-wrapper"><canvas id="customerChart"></canvas></div>
         </div>
