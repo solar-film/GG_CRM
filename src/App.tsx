@@ -11,7 +11,8 @@ import {
   ClipboardList,
   FileText,
   List,
-  LayoutDashboard
+  LayoutDashboard,
+  Edit3
 } from 'lucide-react';
 import DataList from './pages/DataList';
 import DataForm from './pages/DataForm';
@@ -177,6 +178,15 @@ function App() {
             >
               <LayoutDashboard size={24} />
               <span>งานหลุด</span>
+            </a>
+            <a
+              href="/Sales_DataEntry.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={sidebarNavStyle(false)}
+            >
+              <Edit3 size={24} />
+              <span>อัปเดตสถานะงาน</span>
             </a>
             <NavLink to="/settings" style={({isActive}) => sidebarNavStyle(isActive)}>
               <Settings size={24} />

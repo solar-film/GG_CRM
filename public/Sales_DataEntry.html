@@ -807,10 +807,6 @@
             const rowSale = row['Sale_26'] ? String(row['Sale_26']).trim() : '';
             if (rowSale !== loggedInSaleName) return false;
 
-            // Col C (index 2) ต้องไม่เป็น N/A
-            const colC = row['_rawData'] && row['_rawData'][2] ? String(row['_rawData'][2]).trim().toUpperCase() : '';
-            if (colC === 'N/A') return false;
-
             // Date Filter
             if (sDate || eDate) {
                 const dateType = document.getElementById('date-type-filter').value;
