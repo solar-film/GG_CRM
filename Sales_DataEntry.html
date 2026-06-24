@@ -324,7 +324,11 @@
                 header: true,
                 complete: function(res) {
                     res.data.forEach(row => {
-                        if(row.Sale) salePasswords[row.Sale] = row.Password;
+                        const saleName = row['ฝ่ายขาย'] || row['Sale'] || Object.values(row)[0];
+                        const password = row['รหัสผ่าน'] || row['Password'] || Object.values(row)[1];
+                        if (saleName && password) {
+                            salePasswords[String(saleName).trim()] = String(password).trim();
+                        }
                     });
                     
                     updateSaleDropdown();
