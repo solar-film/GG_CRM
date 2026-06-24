@@ -336,11 +336,9 @@
 
     function updateSaleDropdown() {
         let saleSelect = document.getElementById('sale-select');
-        let salesSet = new Set();
-        globalData.forEach(row => {
-            let sale = row['Sale_26'] ? String(row['Sale_26']).trim() : null;
-            if(sale) salesSet.add(sale);
-        });
+        
+        // ดึงเฉพาะรายชื่อเซลล์ที่มีในชีต "รหัสผ่าน" เท่านั้น
+        let salesSet = new Set(Object.keys(salePasswords));
 
         saleSelect.innerHTML = '<option value="">-- เลือกเซลล์ --</option>';
         Array.from(salesSet).sort().forEach(sale => {
