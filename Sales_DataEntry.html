@@ -64,6 +64,30 @@
             margin: 0 auto 1.5rem auto;
         }
 
+        .preset-btn {
+            padding: 0.375rem 1rem;
+            border: 1px solid #cbd5e1;
+            background: transparent;
+            color: #475569;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .preset-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
         .form-group {
             margin-bottom: 1rem;
         }
@@ -217,12 +241,30 @@
     <div class="spinner" id="loading-spinner">กำลังโหลดข้อมูล...</div>
 
     <div id="jobs-container">
-        <div class="card" style="margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-            <h2 style="margin: 0;">งานของฉัน</h2>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.9rem; font-weight: 500;">📅 กรองตามวันที่:</label>
-                <input type="date" class="form-control" id="job-filter-date" onchange="renderJobs()" style="width: auto; padding: 0.4rem;">
-                <button class="btn btn-cancel" style="margin-top: 0; padding: 0.4rem 0.8rem;" onclick="clearFilter()">ดูทั้งหมด</button>
+        <div class="card" style="margin-bottom: 1rem;">
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
+                <h2 style="margin: 0;">งานของฉัน</h2>
+                <div style="flex: 1; max-width: 300px; min-width: 200px;">
+                    <input type="text" id="search-input" class="form-control" placeholder="🔍 ค้นหา ชื่อลูกค้า, สถานที่, สถานะ..." oninput="renderJobs()" style="padding: 0.5rem 1rem; border-radius: 20px;">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); align-items: center;">
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-right: 0.5rem;">📅 กรองวันที่:</span>
+                <button class="preset-btn active" onclick="setPresetFilter('all', this)">ทั้งหมด</button>
+                <button class="preset-btn" onclick="setPresetFilter('today', this)">วันนี้</button>
+                <button class="preset-btn" onclick="setPresetFilter('yesterday', this)">เมื่อวาน</button>
+                <button class="preset-btn" onclick="setPresetFilter('15days', this)">15 วัน</button>
+                <button class="preset-btn" onclick="setPresetFilter('thisMonth', this)">เดือนนี้</button>
+                <button class="preset-btn" onclick="setPresetFilter('lastMonth', this)">เดือนที่แล้ว</button>
+                <button class="preset-btn" onclick="setPresetFilter('3months', this)">3 เดือน</button>
+                
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">ระบุช่วงเวลา:</span>
+                    <input type="date" class="form-control" id="filter-start" onchange="applyCustomRange()" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.85rem; border-radius: 6px;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">-</span>
+                    <input type="date" class="form-control" id="filter-end" onchange="applyCustomRange()" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.85rem; border-radius: 6px;">
+                </div>
             </div>
         </div>
         
@@ -389,8 +431,49 @@
         });
     }
 
-    function clearFilter() {
-        document.getElementById('job-filter-date').value = '';
+    function setPresetFilter(type, btnElement) {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        if(btnElement) btnElement.classList.add('active');
+
+        const today = new Date();
+        let start = null;
+        let end = null;
+
+        if (type === 'today') {
+            start = new Date(today);
+            end = new Date(today);
+        } else if (type === 'yesterday') {
+            start = new Date(today);
+            start.setDate(start.getDate() - 1);
+            end = new Date(start);
+        } else if (type === '15days') {
+            start = new Date(today);
+            start.setDate(start.getDate() - 15);
+            end = new Date(today);
+        } else if (type === 'thisMonth') {
+            start = new Date(today.getFullYear(), today.getMonth(), 1);
+            end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        } else if (type === 'lastMonth') {
+            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            end = new Date(today.getFullYear(), today.getMonth(), 0);
+        } else if (type === '3months') {
+            start = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+            end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        }
+
+        if (start && end) {
+            document.getElementById('filter-start').value = formatDateForInput(start);
+            document.getElementById('filter-end').value = formatDateForInput(end);
+        } else {
+            document.getElementById('filter-start').value = '';
+            document.getElementById('filter-end').value = '';
+        }
+
+        renderJobs();
+    }
+
+    function applyCustomRange() {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
         renderJobs();
     }
 
@@ -420,31 +503,40 @@
             document.getElementById('loading-spinner').style.display = 'none';
             document.getElementById('jobs-container').style.display = 'block';
             
-            document.getElementById('job-filter-date').value = '';
-            renderJobs();
+            setPresetFilter('all', document.querySelector('.preset-btn'));
         }, 500);
     }
 
     function renderJobs() {
         if (!loggedInSaleName) return;
 
-        const filterDateStr = document.getElementById('job-filter-date').value;
-        let filterDateObj = null;
-        if (filterDateStr) {
-            const parts = filterDateStr.split('-');
-            filterDateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-        }
+        const startVal = document.getElementById('filter-start').value;
+        const endVal = document.getElementById('filter-end').value;
+        const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+        
+        let sDate = startVal ? new Date(startVal) : null;
+        if(sDate) sDate.setHours(0,0,0,0);
+        let eDate = endVal ? new Date(endVal) : null;
+        if(eDate) eDate.setHours(23,59,59,999);
 
         const myJobs = globalData.filter(row => {
             const rowSale = row['Sale_26'] ? String(row['Sale_26']).trim() : '';
             if (rowSale !== loggedInSaleName) return false;
 
-            if (filterDateObj) {
+            // Date Filter
+            if (sDate || eDate) {
                 let rowDateObj = parseThaiDate(row['วันที่'] || '');
-                if (!rowDateObj || rowDateObj.getTime() !== filterDateObj.getTime()) {
-                    return false;
-                }
+                if (!rowDateObj) return false;
+                if (sDate && rowDateObj < sDate) return false;
+                if (eDate && rowDateObj > eDate) return false;
             }
+
+            // Search Filter
+            if (searchQuery) {
+                const searchStr = `${row['ชื่อลูกค้า'] || ''} ${row['สถานที่หน้างาน'] || ''} ${row['สถานะ'] || ''}`.toLowerCase();
+                if (!searchStr.includes(searchQuery)) return false;
+            }
+
             return true;
         });
 
@@ -452,11 +544,7 @@
         listContainer.innerHTML = '';
 
         if(myJobs.length === 0) {
-            if (filterDateStr) {
-                listContainer.innerHTML = '<tr><td colspan="8" style="color: var(--text-muted); text-align: center; padding: 2rem;">ไม่มีงานในวันที่เลือกครับ</td></tr>';
-            } else {
-                listContainer.innerHTML = '<tr><td colspan="8" style="color: var(--text-muted); text-align: center; padding: 2rem;">ไม่มีข้อมูลงานเลยครับ 🎉</td></tr>';
-            }
+            listContainer.innerHTML = '<tr><td colspan="8" style="color: var(--text-muted); text-align: center; padding: 2rem;">ไม่พบข้อมูลงานในช่วงเวลา/คำค้นหานี้ครับ 🎉</td></tr>';
         } else {
             myJobs.sort((a, b) => {
                 let da = parseThaiDate(a['วันที่'] || '');
