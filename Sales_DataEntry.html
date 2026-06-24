@@ -35,7 +35,7 @@
 
         .container {
             width: 100%;
-            max-width: 800px;
+            max-width: 1200px; /* ขยายกว้างขึ้น 100% */
             padding: 1.5rem;
             box-sizing: border-box;
         }
@@ -98,28 +98,45 @@
         .btn:hover { background: var(--primary-hover); }
         .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
 
-        .job-card {
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            table-layout: fixed;
+            min-width: 800px;
         }
 
-        .job-info h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
-        .job-info p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f5f9;
+        }
         
         .job-action button {
             background: #f1f5f9;
             color: var(--primary-color);
             border: 1px solid var(--primary-color);
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 6px;
             cursor: pointer;
             font-family: inherit;
             font-weight: 500;
+            font-size: 0.85rem;
         }
 
         .job-action button:hover {
@@ -204,8 +221,22 @@
             </div>
         </div>
         
-        <div class="card">
-            <div id="jobs-list"></div>
+        <div class="card" style="padding: 0; overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">วันที่</th>
+                        <th style="width: 15%;">ชื่อลูกค้า</th>
+                        <th style="width: 20%;">สถานที่หน้างาน</th>
+                        <th style="width: 10%;">พื้นที่ (ตร.ฟ.)</th>
+                        <th style="width: 10%;">ยอดขาย</th>
+                        <th style="width: 10%;">สถานะ</th>
+                        <th style="width: 15%;">สาเหตุ</th>
+                        <th style="width: 10%; text-align: center;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="jobs-list"></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -417,9 +448,9 @@
 
         if(myJobs.length === 0) {
             if (filterDateStr) {
-                listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่มีงานในวันที่เลือกครับ</p>';
+                listContainer.innerHTML = '<tr><td colspan="8" style="color: var(--text-muted); text-align: center; padding: 2rem;">ไม่มีงานในวันที่เลือกครับ</td></tr>';
             } else {
-                listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่มีข้อมูลงานเลยครับ 🎉</p>';
+                listContainer.innerHTML = '<tr><td colspan="8" style="color: var(--text-muted); text-align: center; padding: 2rem;">ไม่มีข้อมูลงานเลยครับ 🎉</td></tr>';
             }
         } else {
             myJobs.sort((a, b) => {
@@ -435,24 +466,34 @@
                 const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
                 const location = job['สถานที่หน้างาน'] || '-';
                 const date = job['วันที่'] || '-';
-                const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : 'ยังไม่ระบุสถานะ';
+                const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : '-';
+                const area = job['_areaColT'] || job['พื้นที่'] || '-';
+                
+                let salesRaw = job['ยอดรวม'] || job['Col AP'] || job['ยอดขาย'];
+                if (typeof salesRaw === 'string') salesRaw = salesRaw.replace(/,/g, '');
+                const salesValue = parseFloat(salesRaw) || 0;
+                const formattedSales = salesValue > 0 ? salesValue.toLocaleString() : '-';
+                
+                const reason = job['สาเหตุ'] || '-';
                 
                 let statusColor = '#64748b';
                 if (currentStatus === 'ปิดการขาย') statusColor = '#10b981';
                 else if (currentStatus === 'งานหลุด' || currentStatus === 'ไม่รับงาน') statusColor = '#ef4444';
 
-                const card = document.createElement('div');
-                card.className = 'job-card';
-                card.innerHTML = `
-                    <div class="job-info">
-                        <h3>${custName} <span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">${currentStatus}</span></h3>
-                        <p>📅 วันที่พบ: ${date} | 📍 ${location}</p>
-                    </div>
-                    <div class="job-action">
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${date}</td>
+                    <td style="font-weight: 500;">${custName}</td>
+                    <td style="font-size: 0.85rem;">${location}</td>
+                    <td>${area}</td>
+                    <td>${formattedSales}</td>
+                    <td><span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 4px 10px; border-radius: 12px; white-space: nowrap;">${currentStatus}</span></td>
+                    <td style="font-size: 0.85rem; color: #ef4444;">${reason}</td>
+                    <td style="text-align: center;" class="job-action">
                         <button onclick="openModal('${encodeURIComponent(custName)}', '${encodeURIComponent(loggedInSaleName)}', '${encodeURIComponent(location)}')">อัปเดต</button>
-                    </div>
+                    </td>
                 `;
-                listContainer.appendChild(card);
+                listContainer.appendChild(tr);
             });
         }
     }
