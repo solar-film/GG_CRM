@@ -180,9 +180,13 @@
 
     <div class="card" id="login-section">
         <div class="form-group">
-            <label>เลือกชื่อเซลล์ของคุณ</label>
+            <label>1. เลือกวันที่หน้างาน</label>
+            <input type="date" class="form-control" id="filter-date" onchange="updateSaleDropdown()">
+        </div>
+        <div class="form-group">
+            <label>2. เลือกชื่อเซลล์ของคุณ</label>
             <select class="form-control" id="sale-select">
-                <option value="">-- กำลังโหลดข้อมูล... --</option>
+                <option value="">-- กรุณาเลือกวันที่ก่อน --</option>
             </select>
         </div>
         <div class="form-group">
@@ -254,6 +258,27 @@
     // ป้องกัน Cache เพื่อให้ได้ข้อมูลใหม่ล่าสุดเสมอเมื่อเปิดเว็บ
     const fetchUrl = SHEET_CSV_URL + '&t=' + new Date().getTime();
 
+    function parseThaiDate(dateStr) {
+        if (!dateStr) return null;
+        const parts = dateStr.trim().split('/');
+        if (parts.length === 3) {
+            const d = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            let y = parseInt(parts[2], 10);
+            if (y < 100) y += 2000;
+            else if (y > 2400) y -= 543;
+            return new Date(y, m, d);
+        }
+        return null;
+    }
+
+    function formatDateForInput(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
     // Load CSV
     Papa.parse(fetchUrl, {
         download: true,
@@ -285,25 +310,48 @@
 
             globalData = parsedData;
 
-            // Extract unique Sales
-            let salesSet = new Set();
-            globalData.forEach(row => {
+            // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
+            const today = new Date();
+            document.getElementById('filter-date').value = formatDateForInput(today);
+
+            updateSaleDropdown();
+            document.getElementById('btn-login').disabled = false;
+        }
+    });
+
+    function updateSaleDropdown() {
+        const selectedDateStr = document.getElementById('filter-date').value;
+        let saleSelect = document.getElementById('sale-select');
+        
+        if (!selectedDateStr) {
+            saleSelect.innerHTML = '<option value="">-- กรุณาเลือกวันที่ก่อน --</option>';
+            return;
+        }
+
+        const parts = selectedDateStr.split('-');
+        const filterDateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+
+        let salesSet = new Set();
+        globalData.forEach(row => {
+            let rowDateObj = parseThaiDate(row['วันที่'] || '');
+            if (rowDateObj && rowDateObj.getTime() === filterDateObj.getTime()) {
                 let sale = row['Sale_26'] ? String(row['Sale_26']).trim() : null;
                 if(sale) salesSet.add(sale);
-            });
+            }
+        });
 
-            let saleSelect = document.getElementById('sale-select');
-            saleSelect.innerHTML = '<option value="">-- เลือกเซลล์ --</option>';
+        saleSelect.innerHTML = '<option value="">-- เลือกเซลล์ --</option>';
+        if (salesSet.size === 0) {
+            saleSelect.innerHTML = '<option value="">-- ไม่มีงานในวันนี้ --</option>';
+        } else {
             Array.from(salesSet).sort().forEach(sale => {
                 let opt = document.createElement('option');
                 opt.value = sale;
                 opt.textContent = sale;
                 saleSelect.appendChild(opt);
             });
-
-            document.getElementById('btn-login').disabled = false;
         }
-    });
+    }
 
     function loadJobs() {
         const saleName = document.getElementById('sale-select').value;
@@ -339,29 +387,39 @@
         document.getElementById('jobs-container').style.display = 'none';
 
         setTimeout(() => {
-            // Filter Jobs for this sale that are NOT closed or lost yet
+            const parts = document.getElementById('filter-date').value.split('-');
+            const filterDateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+
+            // แสดงงานทั้งหมดของเซลล์คนนั้นในวันที่เลือก (แสดงข้อมูลทั้งหมด ไม่กรองสถานะออก)
             const myJobs = globalData.filter(row => {
-                const rowSale = row['Sale_26'] ? row['Sale_26'].trim() : '';
-                const status = row['สถานะ'] ? row['สถานะ'].trim() : '';
-                return rowSale === saleName && status !== 'ปิดการขาย' && status !== 'งานหลุด' && status !== 'ไม่รับงาน';
+                const rowSale = row['Sale_26'] ? String(row['Sale_26']).trim() : '';
+                let rowDateObj = parseThaiDate(row['วันที่'] || '');
+                const isSameDate = rowDateObj && rowDateObj.getTime() === filterDateObj.getTime();
+                
+                return rowSale === saleName && isSameDate;
             });
 
             const listContainer = document.getElementById('jobs-list');
             listContainer.innerHTML = '';
 
             if(myJobs.length === 0) {
-                listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่มีงานที่ค้างอยู่ครับ 🎉</p>';
+                listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่มีงานค้างในวันนี้ครับ 🎉</p>';
             } else {
                 myJobs.forEach(job => {
                     const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
                     const location = job['สถานที่หน้างาน'] || '-';
                     const date = job['วันที่'] || '-';
+                    const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : 'ยังไม่ระบุสถานะ';
+                    
+                    let statusColor = '#64748b';
+                    if (currentStatus === 'ปิดการขาย') statusColor = '#10b981';
+                    else if (currentStatus === 'งานหลุด' || currentStatus === 'ไม่รับงาน') statusColor = '#ef4444';
 
                     const card = document.createElement('div');
                     card.className = 'job-card';
                     card.innerHTML = `
                         <div class="job-info">
-                            <h3>${custName}</h3>
+                            <h3>${custName} <span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">${currentStatus}</span></h3>
                             <p>📅 วันที่พบ: ${date} | 📍 ${location}</p>
                         </div>
                         <div class="job-action">
