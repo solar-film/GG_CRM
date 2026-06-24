@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกสถานะงาน - Sales Data Entry</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --surface-color: #ffffff;
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: 'Prompt', 'Inter', sans-serif;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .card {
+            background: var(--surface-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .btn:hover { background: var(--primary-hover); }
+        .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        .job-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .job-info h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+        .job-info p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
+        
+        .job-action button {
+            background: #f1f5f9;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+        }
+
+        .job-action button:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        #jobs-container { display: none; }
+        .spinner { display: none; text-align: center; padding: 2rem; color: var(--text-muted); }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .modal-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .btn-cancel {
+            background: white;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            margin-top: 0.5rem;
+        }
+        .btn-cancel:hover { background: #f1f5f9; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>อัปเดตสถานะงานเซลล์</h1>
+        <p style="color: var(--text-muted); margin-top: 0.25rem;">ระบบบันทึกงานหลุด/ปิดการขายเข้า Google Sheets</p>
+    </div>
+
+    <div class="card" id="login-section">
+        <div class="form-group">
+            <label>เลือกชื่อเซลล์ของคุณ</label>
+            <select class="form-control" id="sale-select">
+                <option value="">-- กำลังโหลดข้อมูล... --</option>
+            </select>
+        </div>
+        <button class="btn" id="btn-login" onclick="loadJobs()" disabled>ค้นหางานของฉัน</button>
+    </div>
+
+    <div class="spinner" id="loading-spinner">กำลังโหลดข้อมูล...</div>
+
+    <div id="jobs-container">
+        <div class="card">
+            <h2 style="margin-top: 0;">งานที่กำลังดำเนินการ</h2>
+            <div id="jobs-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Modal -->
+<div class="modal" id="update-modal">
+    <div class="modal-content">
+        <div class="modal-header">อัปเดตสถานะงาน</div>
+        <div id="modal-job-name" style="margin-bottom: 1rem; font-weight: 500; color: var(--primary-color);"></div>
+        
+        <form id="update-form">
+            <div class="form-group">
+                <label>สถานะ</label>
+                <select class="form-control" id="input-status" required>
+                    <option value="">-- เลือกสถานะ --</option>
+                    <option value="ปิดการขาย">ปิดการขาย</option>
+                    <option value="งานหลุด">งานหลุด</option>
+                    <option value="ไม่รับงาน">ไม่รับงาน</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>วันที่อัปเดต</label>
+                <input type="date" class="form-control" id="input-date" required>
+            </div>
+            <div class="form-group">
+                <label>สาเหตุหลัก (เฉพาะกรณีงานหลุด)</label>
+                <select class="form-control" id="input-reason">
+                    <option value="">-- เลือกสาเหตุ --</option>
+                    <option value="ราคาแพง">ราคาแพง / สู้ราคาไม่ได้</option>
+                    <option value="ไปใช้ฟิล์มแบรนด์อื่น">ไปใช้ฟิล์มแบรนด์อื่น</option>
+                    <option value="ติดต่อไม่ได้">ติดต่อไม่ได้ / เลื่อนไม่มีกำหนด</option>
+                    <option value="สเปคไม่ตรง">สเปค/สีไม่ตรงความต้องการ</option>
+                    <option value="เปลี่ยนใจไม่ติด">เปลี่ยนใจไม่ติดแล้ว</option>
+                    <option value="อื่นๆ">อื่นๆ</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn" id="btn-submit">บันทึกข้อมูล</button>
+            <button type="button" class="btn btn-cancel" onclick="closeModal()">ยกเลิก</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ===== นำ WEB APP URL จาก Apps Script มาใส่ที่นี่ =====
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; 
+
+    // URL ของ Google Sheets (CSV) เพื่อใช้อ่านข้อมูล
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1Xl254pY144K9T1Q3l6L3vG293cXXz_9Nig8Zk1_HnQk/export?format=csv&id=1Xl254pY144K9T1Q3l6L3vG293cXXz_9Nig8Zk1_HnQk&gid=912170889';
+
+    let globalData = [];
+    let currentJob = null;
+
+    // Load CSV
+    Papa.parse(SHEET_CSV_URL, {
+        download: true,
+        header: false,
+        complete: function(results) {
+            const rawData = results.data;
+            if (rawData.length < 3) return;
+
+            // Extract Headers
+            let headers = rawData[0].map((h, i) => h ? h.trim() : rawData[1][i] ? rawData[1][i].trim() : `Col_${i}`);
+            
+            let parsedData = [];
+            for (let i = 2; i < rawData.length; i++) {
+                if (!rawData[i] || rawData[i].length === 0 || !rawData[i][0]) continue;
+                let obj = {};
+                for (let j = 0; j < headers.length; j++) {
+                    let headerName = headers[j];
+                    if (obj.hasOwnProperty(headerName)) headerName = headerName + '_' + j;
+                    obj[headerName] = rawData[i][j];
+                }
+                parsedData.push(obj);
+            }
+
+            globalData = parsedData;
+
+            // Extract unique Sales
+            let salesSet = new Set();
+            globalData.forEach(row => {
+                let sale = row['Sale_26'] ? row['Sale_26'].trim() : null;
+                if(sale) salesSet.add(sale);
+            });
+
+            let saleSelect = document.getElementById('sale-select');
+            saleSelect.innerHTML = '<option value="">-- เลือกเซลล์ --</option>';
+            Array.from(salesSet).sort().forEach(sale => {
+                let opt = document.createElement('option');
+                opt.value = sale;
+                opt.textContent = sale;
+                saleSelect.appendChild(opt);
+            });
+
+            document.getElementById('btn-login').disabled = false;
+        }
+    });
+
+    function loadJobs() {
+        const saleName = document.getElementById('sale-select').value;
+        if(!saleName) {
+            Swal.fire('แจ้งเตือน', 'กรุณาเลือกชื่อเซลล์ก่อนครับ', 'warning');
+            return;
+        }
+
+        document.getElementById('loading-spinner').style.display = 'block';
+        document.getElementById('jobs-container').style.display = 'none';
+
+        setTimeout(() => {
+            // Filter Jobs for this sale that are NOT closed or lost yet
+            // สมมติว่าเอางานที่สถานะยังไม่เป็น "ปิดการขาย", "งานหลุด", "ไม่รับงาน"
+            const myJobs = globalData.filter(row => {
+                const rowSale = row['Sale_26'] ? row['Sale_26'].trim() : '';
+                const status = row['สถานะ'] ? row['สถานะ'].trim() : '';
+                return rowSale === saleName && status !== 'ปิดการขาย' && status !== 'งานหลุด' && status !== 'ไม่รับงาน';
+            });
+
+            const listContainer = document.getElementById('jobs-list');
+            listContainer.innerHTML = '';
+
+            if(myJobs.length === 0) {
+                listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่มีงานที่ค้างอยู่ครับ 🎉</p>';
+            } else {
+                myJobs.forEach(job => {
+                    const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
+                    const location = job['สถานที่หน้างาน'] || '-';
+                    const date = job['วันที่'] || '-';
+
+                    const card = document.createElement('div');
+                    card.className = 'job-card';
+                    card.innerHTML = `
+                        <div class="job-info">
+                            <h3>${custName}</h3>
+                            <p>📅 วันที่พบ: ${date} | 📍 ${location}</p>
+                        </div>
+                        <div class="job-action">
+                            <button onclick="openModal('${encodeURIComponent(custName)}', '${encodeURIComponent(saleName)}', '${encodeURIComponent(location)}')">อัปเดต</button>
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+            }
+
+            document.getElementById('loading-spinner').style.display = 'none';
+            document.getElementById('jobs-container').style.display = 'block';
+        }, 500);
+    }
+
+    function openModal(encCust, encSale, encLoc) {
+        if(GAS_WEB_APP_URL === 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec') {
+            Swal.fire('ยังไม่ได้ตั้งค่า', 'รบกวนนำ Web App URL ของ Apps Script มาใส่ในไฟล์ HTML บรรทัดที่ 162 ก่อนครับ', 'info');
+            return;
+        }
+
+        currentJob = {
+            customerName: decodeURIComponent(encCust),
+            saleRep: decodeURIComponent(encSale),
+            location: decodeURIComponent(encLoc)
+        };
+
+        document.getElementById('modal-job-name').innerText = currentJob.customerName;
+        document.getElementById('input-status').value = '';
+        document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('input-reason').value = '';
+        
+        document.getElementById('update-modal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('update-modal').classList.remove('active');
+        currentJob = null;
+    }
+
+    document.getElementById('update-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const status = document.getElementById('input-status').value;
+        const dateStr = document.getElementById('input-date').value; // yyyy-mm-dd
+        const reason = document.getElementById('input-reason').value;
+
+        if((status === 'งานหลุด' || status === 'ไม่รับงาน') && !reason) {
+            Swal.fire('แจ้งเตือน', 'กรุณาระบุสาเหตุหลักของงานหลุดด้วยครับ', 'warning');
+            return;
+        }
+
+        // Convert YYYY-MM-DD to DD/MM/YYYY for Sheet
+        const parts = dateStr.split('-');
+        const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        
+        // Month string e.g. "มิ.ย. 66" (Optional, you can format it or let sheet handle it)
+        const thaiMonths = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+        const monthIndex = parseInt(parts[1]) - 1;
+        const year543 = parseInt(parts[0]) + 543;
+        const formattedMonth = `${thaiMonths[monthIndex]} ${year543.toString().slice(-2)}`;
+
+        const payload = {
+            customerName: currentJob.customerName,
+            saleRep: currentJob.saleRep,
+            location: currentJob.location,
+            status: status,
+            date: formattedDate,
+            month: formattedMonth,
+            reason: reason
+        };
+
+        Swal.fire({
+            title: 'กำลังบันทึก...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                Swal.fire('สำเร็จ!', 'บันทึกข้อมูลเรียบร้อยแล้ว', 'success').then(() => {
+                    closeModal();
+                    // เรายังไม่ดึงข้อมูลใหม่ทันที เพราะต้องรอ Google Sheet ประมวลผลและ Publish CSV
+                    // แต่เราสามารถลบการ์ดนี้ออกจากหน้าจอไปก่อนได้
+                    loadJobs(); 
+                });
+            } else {
+                Swal.fire('เกิดข้อผิดพลาด', data.message || 'บันทึกไม่สำเร็จ', 'error');
+            }
+        })
+        .catch(err => {
+            Swal.fire('เกิดข้อผิดพลาด', err.toString(), 'error');
+        });
+
+    });
+
+</script>
+</body>
+</html>
