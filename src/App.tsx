@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
