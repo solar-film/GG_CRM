@@ -402,6 +402,7 @@
                     }
                     obj[headerName] = rawData[i][j];
                 }
+                obj['_rawData'] = rawData[i];
                 parsedData.push(obj);
             }
             globalData = parsedData;
@@ -577,7 +578,8 @@
                 const date = job['วันที่'] || '-';
                 const company = job['บริษัท'] || '-';
                 const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
-                const phone = job['เบอร์โทร'] || job['Col_12'] || '-';
+                let phone = job['_rawData'] && job['_rawData'][12] ? String(job['_rawData'][12]).trim() : '-';
+                if (phone === '') phone = '-';
                 const location = job['สถานที่หน้างาน'] || '-';
                 const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : '-';
                 const reason = job['สาเหตุ'] || '-';
