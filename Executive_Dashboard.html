@@ -631,7 +631,9 @@
             .filter-custom button { width: 100%; margin-left: 0 !important; margin-top: 0.5rem; }
             #kpi-top-sale > div[style*="display: grid"] { grid-template-columns: repeat(2, 1fr) !important; }
             .table-section { padding: 1rem; }
-            table th, table td { padding: 8px 8px; font-size: 0.78rem; }
+            table { min-width: 700px; }
+            table th, table td { padding: 8px 10px; font-size: 0.85rem; }
+            table th:not(:last-child), table td:not(:last-child) { white-space: nowrap; }
             .chart-canvas-wrapper { height: 240px; }
             .chart-card { padding: 1rem; }
             .hide-on-mobile { display: none !important; }
