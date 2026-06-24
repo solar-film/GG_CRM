@@ -634,6 +634,7 @@
             table th, table td { padding: 8px 8px; font-size: 0.78rem; }
             .chart-canvas-wrapper { height: 240px; }
             .chart-card { padding: 1rem; }
+            .hide-on-mobile { display: none !important; }
         }
 
         @media (max-width: 480px) {
@@ -804,11 +805,11 @@
             <div class="chart-header">👤 สถิติพนักงานขาย (งานหลุด / พบลูกค้า / ยอดขายงานติดตั้ง)</div>
             <div class="chart-canvas-wrapper large"><canvas id="saleChart"></canvas></div>
         </div>
-        <div class="chart-card hide-on-print">
+        <div class="chart-card hide-on-print hide-on-mobile">
             <div class="chart-header">🏢 สัดส่วนงานหลุด แยกตามแบรนด์ (Brand)</div>
             <div class="chart-canvas-wrapper"><canvas id="companyChart"></canvas></div>
         </div>
-        <div class="chart-card hide-on-print">
+        <div class="chart-card hide-on-print hide-on-mobile">
             <div class="chart-header">🎯 สัดส่วนงานหลุด แยกตามประเภทลูกค้า</div>
             <div class="chart-canvas-wrapper"><canvas id="customerChart"></canvas></div>
         </div>
