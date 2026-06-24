@@ -261,8 +261,8 @@
             </div>
             
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); align-items: center;">
-                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-right: 0.5rem;">📅 กรองวันที่:</span>
-                <button class="preset-btn active" onclick="setPresetFilter('all', this)">ทั้งหมด</button>
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-right: 0.5rem;">📅 ระบุ วันที่พบลูกค้า:</span>
+                <button class="preset-btn" onclick="setPresetFilter('all', this)">ทั้งหมด</button>
                 <button class="preset-btn" onclick="setPresetFilter('today', this)">วันนี้</button>
                 <button class="preset-btn" onclick="setPresetFilter('yesterday', this)">เมื่อวาน</button>
                 <button class="preset-btn" onclick="setPresetFilter('15days', this)">15 วัน</button>
@@ -582,6 +582,8 @@
                 if (phone === '') phone = '-';
                 const location = job['สถานที่หน้างาน'] || '-';
                 const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : '-';
+                const updateDateStr = job['_rawData'] && job['_rawData'][25] ? String(job['_rawData'][25]).trim() : '';
+                const updateDateHtml = updateDateStr ? `<div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 4px; white-space: nowrap;">อัปเดต: ${updateDateStr}</div>` : '';
                 const reason = job['สาเหตุ'] || '-';
                 
                 let statusColor = '#3b82f6'; // Default (Blue)
@@ -598,7 +600,12 @@
                     <td style="font-weight: 500;">${custName}</td>
                     <td>${phone}</td>
                     <td style="font-size: 0.85rem;">${location}</td>
-                    <td><span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 4px 10px; border-radius: 12px; white-space: nowrap;">${currentStatus}</span></td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                            <span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 4px 10px; border-radius: 12px; white-space: nowrap;">${currentStatus}</span>
+                            ${updateDateHtml}
+                        </div>
+                    </td>
                     <td style="font-size: 0.85rem; color: #ef4444;">${reason}</td>
                     <td style="text-align: center;" class="job-action">
                         <button onclick="openModal('${encodeURIComponent(custName)}', '${encodeURIComponent(loggedInSaleName)}', '${encodeURIComponent(location)}')">อัปเดต</button>
