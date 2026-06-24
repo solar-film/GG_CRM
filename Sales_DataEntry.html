@@ -251,24 +251,33 @@
     let globalData = [];
     let currentJob = null;
 
+    // ป้องกัน Cache เพื่อให้ได้ข้อมูลใหม่ล่าสุดเสมอเมื่อเปิดเว็บ
+    const fetchUrl = SHEET_CSV_URL + '&t=' + new Date().getTime();
+
     // Load CSV
-    Papa.parse(SHEET_CSV_URL, {
+    Papa.parse(fetchUrl, {
         download: true,
         header: false,
+        skipEmptyLines: true,
         complete: function(results) {
             const rawData = results.data;
-            if (rawData.length < 3) return;
+            if (rawData.length < 4) {
+                alert("ไม่พบข้อมูล หรือโหลดข้อมูลผิดพลาด");
+                return;
+            }
 
-            // Extract Headers
-            let headers = rawData[0].map((h, i) => h ? h.trim() : rawData[1][i] ? rawData[1][i].trim() : `Col_${i}`);
+            // Extract Headers จากบรรทัดที่ 3 (index 2)
+            const headers = rawData[2];
             
             let parsedData = [];
-            for (let i = 2; i < rawData.length; i++) {
-                if (!rawData[i] || rawData[i].length === 0 || !rawData[i][0]) continue;
+            for (let i = 3; i < rawData.length; i++) {
                 let obj = {};
                 for (let j = 0; j < headers.length; j++) {
                     let headerName = headers[j];
-                    if (obj.hasOwnProperty(headerName)) headerName = headerName + '_' + j;
+                    if (!headerName) continue;
+                    if (obj.hasOwnProperty(headerName)) {
+                        headerName = headerName + '_' + j; // ป้องกันคอลัมน์ Sale ซ้ำกัน
+                    }
                     obj[headerName] = rawData[i][j];
                 }
                 parsedData.push(obj);
@@ -279,7 +288,7 @@
             // Extract unique Sales
             let salesSet = new Set();
             globalData.forEach(row => {
-                let sale = row['Sale_26'] ? row['Sale_26'].trim() : null;
+                let sale = row['Sale_26'] ? String(row['Sale_26']).trim() : null;
                 if(sale) salesSet.add(sale);
             });
 
