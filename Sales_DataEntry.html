@@ -35,7 +35,7 @@
 
         .container {
             width: 100%;
-            max-width: 1200px; /* ขยายกว้างขึ้น 100% */
+            max-width: 100%; /* ขยายเต็มหน้าจอ */
             padding: 1.5rem;
             box-sizing: border-box;
         }
@@ -243,9 +243,20 @@
     <div id="jobs-container">
         <div class="card" style="margin-bottom: 1rem;">
             <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;">
-                <h2 style="margin: 0;">งานของฉัน</h2>
-                <div style="flex: 1; max-width: 300px; min-width: 200px;">
-                    <input type="text" id="search-input" class="form-control" placeholder="🔍 ค้นหา ชื่อลูกค้า, สถานที่, สถานะ..." oninput="renderJobs()" style="padding: 0.5rem 1rem; border-radius: 20px;">
+                <h2 style="margin: 0;" id="jobs-title">งานของฉัน</h2>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; flex: 1; justify-content: flex-end;">
+                    <select id="status-filter" class="form-control" onchange="renderJobs()" style="width: auto; padding: 0.4rem 1rem; border-radius: 20px;">
+                        <option value="">ทุกสถานะ</option>
+                        <option value="ติดตั้งแล้ว">ติดตั้งแล้ว</option>
+                        <option value="ปิดการขาย">ปิดการขาย</option>
+                        <option value="ติดตาม">ติดตาม</option>
+                        <option value="ไม่ติดตั้ง">ไม่ติดตั้ง</option>
+                        <option value="งานหลุด">งานหลุด</option>
+                        <option value="ยกเลิก">ยกเลิก</option>
+                        <option value="เสนอราคา">เสนอราคา</option>
+                        <option value="นัด">นัดดูหน้างาน / วัดพื้นที่</option>
+                    </select>
+                    <input type="text" id="search-input" class="form-control" placeholder="🔍 ค้นหา ชื่อลูกค้า, สถานที่..." oninput="renderJobs()" style="max-width: 250px; padding: 0.4rem 1rem; border-radius: 20px;">
                 </div>
             </div>
             
@@ -272,14 +283,18 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 10%;">วันที่</th>
-                        <th style="width: 15%;">ชื่อลูกค้า</th>
-                        <th style="width: 20%;">สถานที่หน้างาน</th>
-                        <th style="width: 10%;">พื้นที่ (ตร.ฟ.)</th>
-                        <th style="width: 10%;">ยอดขาย</th>
-                        <th style="width: 10%;">สถานะ</th>
-                        <th style="width: 15%;">สาเหตุ</th>
-                        <th style="width: 10%; text-align: center;">จัดการ</th>
+                        <th style="width: 7%;">วันที่</th>
+                        <th style="width: 8%;">บริษัท</th>
+                        <th style="width: 7%;">ID</th>
+                        <th style="width: 12%;">ชื่อลูกค้า</th>
+                        <th style="width: 10%;">เบอร์โทร</th>
+                        <th style="width: 8%;">ช่องทาง</th>
+                        <th style="width: 8%;">ชื่อช่องทาง</th>
+                        <th style="width: 12%;">สถานที่หน้างาน</th>
+                        <th style="width: 7%;">พื้นที่ (ตร.ฟ.)</th>
+                        <th style="width: 8%;">สถานะ</th>
+                        <th style="width: 8%;">สาเหตุ</th>
+                        <th style="width: 5%; text-align: center;">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody id="jobs-list"></tbody>
@@ -496,6 +511,7 @@
         }
         
         loggedInSaleName = saleName;
+        document.getElementById('jobs-title').innerText = 'งานของฉัน (' + saleName + ')';
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('loading-spinner').style.display = 'block';
 
@@ -503,7 +519,7 @@
             document.getElementById('loading-spinner').style.display = 'none';
             document.getElementById('jobs-container').style.display = 'block';
             
-            setPresetFilter('all', document.querySelector('.preset-btn'));
+            setPresetFilter('thisMonth', document.querySelector('.preset-btn[onclick*="thisMonth"]'));
         }, 500);
     }
 
@@ -513,6 +529,7 @@
         const startVal = document.getElementById('filter-start').value;
         const endVal = document.getElementById('filter-end').value;
         const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+        const statusFilter = document.getElementById('status-filter').value;
         
         let sDate = startVal ? new Date(startVal) : null;
         if(sDate) sDate.setHours(0,0,0,0);
@@ -531,9 +548,15 @@
                 if (eDate && rowDateObj > eDate) return false;
             }
 
+            // Status Filter
+            if (statusFilter) {
+                const currentStatus = row['สถานะ'] ? row['สถานะ'].trim() : '';
+                if (!currentStatus.includes(statusFilter)) return false;
+            }
+
             // Search Filter
             if (searchQuery) {
-                const searchStr = `${row['ชื่อลูกค้า'] || ''} ${row['สถานที่หน้างาน'] || ''} ${row['สถานะ'] || ''}`.toLowerCase();
+                const searchStr = `${row['ชื่อลูกค้า'] || ''} ${row['สถานที่หน้างาน'] || ''}`.toLowerCase();
                 if (!searchStr.includes(searchQuery)) return false;
             }
 
@@ -544,7 +567,7 @@
         listContainer.innerHTML = '';
 
         if(myJobs.length === 0) {
-            listContainer.innerHTML = '<tr><td colspan="8" style="color: var(--text-muted); text-align: center; padding: 2rem;">ไม่พบข้อมูลงานในช่วงเวลา/คำค้นหานี้ครับ 🎉</td></tr>';
+            listContainer.innerHTML = '<tr><td colspan="12" style="color: var(--text-muted); text-align: center; padding: 2rem;">ไม่พบข้อมูลงานในช่วงเวลา/คำค้นหานี้ครับ 🎉</td></tr>';
         } else {
             myJobs.sort((a, b) => {
                 let da = parseThaiDate(a['วันที่'] || '');
@@ -556,17 +579,16 @@
             });
 
             myJobs.forEach(job => {
-                const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
-                const location = job['สถานที่หน้างาน'] || '-';
                 const date = job['วันที่'] || '-';
+                const company = job['บริษัท'] || '-';
+                const jobId = job['ID'] || '-';
+                const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
+                const phone = job['เบอร์โทร'] || '-';
+                const channel = job['ช่องทาง'] || '-';
+                const channelName = job['ชื่อช่องทาง'] || '-';
+                const location = job['สถานที่หน้างาน'] || '-';
+                const area = job['พื้นที่'] || '-';
                 const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : '-';
-                const area = job['_areaColT'] || job['พื้นที่'] || '-';
-                
-                let salesRaw = job['ยอดรวม'] || job['Col AP'] || job['ยอดขาย'];
-                if (typeof salesRaw === 'string') salesRaw = salesRaw.replace(/,/g, '');
-                const salesValue = parseFloat(salesRaw) || 0;
-                const formattedSales = salesValue > 0 ? salesValue.toLocaleString() : '-';
-                
                 const reason = job['สาเหตุ'] || '-';
                 
                 let statusColor = '#3b82f6'; // Default (Blue)
@@ -579,10 +601,14 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${date}</td>
+                    <td>${company}</td>
+                    <td>${jobId}</td>
                     <td style="font-weight: 500;">${custName}</td>
+                    <td>${phone}</td>
+                    <td>${channel}</td>
+                    <td>${channelName}</td>
                     <td style="font-size: 0.85rem;">${location}</td>
                     <td>${area}</td>
-                    <td>${formattedSales}</td>
                     <td><span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 4px 10px; border-radius: 12px; white-space: nowrap;">${currentStatus}</span></td>
                     <td style="font-size: 0.85rem; color: #ef4444;">${reason}</td>
                     <td style="text-align: center;" class="job-action">
