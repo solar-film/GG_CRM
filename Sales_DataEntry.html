@@ -261,14 +261,21 @@
             </div>
             
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); align-items: center;">
-                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-right: 0.5rem;">📅 ระบุ วันที่พบลูกค้า:</span>
-                <button class="preset-btn" onclick="setPresetFilter('all', this)">ทั้งหมด</button>
+                <div style="display: flex; align-items: center; margin-right: 0.5rem; gap: 0.5rem;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">📅 กรองจาก:</span>
+                    <select id="date-type-filter" onchange="renderJobs()" style="padding: 0.3rem 0.5rem; border-radius: 6px; font-size: 0.85rem; border: 1px solid #cbd5e1; outline: none;">
+                        <option value="meet">วันที่พบลูกค้า</option>
+                        <option value="update">วันที่ Update</option>
+                    </select>
+                </div>
                 <button class="preset-btn" onclick="setPresetFilter('today', this)">วันนี้</button>
                 <button class="preset-btn" onclick="setPresetFilter('yesterday', this)">เมื่อวาน</button>
-                <button class="preset-btn" onclick="setPresetFilter('15days', this)">15 วัน</button>
                 <button class="preset-btn" onclick="setPresetFilter('thisMonth', this)">เดือนนี้</button>
                 <button class="preset-btn" onclick="setPresetFilter('lastMonth', this)">เดือนที่แล้ว</button>
                 <button class="preset-btn" onclick="setPresetFilter('3months', this)">3 เดือน</button>
+                <button class="preset-btn" onclick="setPresetFilter('6months', this)">6 เดือน</button>
+                <button class="preset-btn" onclick="setPresetFilter('thisYear', this)">ปีนี้</button>
+                <button class="preset-btn" onclick="setPresetFilter('all', this)">ทั้งหมด</button>
                 
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
                     <span style="font-size: 0.85rem; color: var(--text-muted);">ระบุช่วงเวลา:</span>
@@ -358,7 +365,8 @@
 
     function parseThaiDate(dateStr) {
         if (!dateStr) return null;
-        const parts = dateStr.trim().split('/');
+        const justDate = String(dateStr).trim().split(' ')[0];
+        const parts = justDate.split('/');
         if (parts.length === 3) {
             const d = parseInt(parts[0], 10);
             const m = parseInt(parts[1], 10) - 1;
@@ -457,10 +465,6 @@
             start = new Date(today);
             start.setDate(start.getDate() - 1);
             end = new Date(start);
-        } else if (type === '15days') {
-            start = new Date(today);
-            start.setDate(start.getDate() - 15);
-            end = new Date(today);
         } else if (type === 'thisMonth') {
             start = new Date(today.getFullYear(), today.getMonth(), 1);
             end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -470,6 +474,12 @@
         } else if (type === '3months') {
             start = new Date(today.getFullYear(), today.getMonth() - 2, 1);
             end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        } else if (type === '6months') {
+            start = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+            end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        } else if (type === 'thisYear') {
+            start = new Date(today.getFullYear(), 0, 1);
+            end = new Date(today.getFullYear(), 11, 31);
         }
 
         if (start && end) {
@@ -538,7 +548,15 @@
 
             // Date Filter
             if (sDate || eDate) {
-                let rowDateObj = parseThaiDate(row['วันที่'] || '');
+                const dateType = document.getElementById('date-type-filter').value;
+                let dateStr = '';
+                if (dateType === 'meet') {
+                    dateStr = row['วันที่'];
+                } else {
+                    dateStr = row['_rawData'] && row['_rawData'][25] ? row['_rawData'][25] : '';
+                }
+
+                let rowDateObj = parseThaiDate(dateStr || '');
                 if (!rowDateObj) return false;
                 if (sDate && rowDateObj < sDate) return false;
                 if (eDate && rowDateObj > eDate) return false;
