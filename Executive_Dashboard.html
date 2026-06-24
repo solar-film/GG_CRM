@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Dashboard - รายงานงานหลุด</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%233b82f6'/><stop offset='100%' stop-color='%236366f1'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><rect x='22' y='55' width='14' height='25' rx='4' fill='%23ffffff'/><rect x='43' y='35' width='14' height='45' rx='4' fill='%23ffffff'/><rect x='64' y='20' width='14' height='60' rx='4' fill='%23ffffff'/></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-1: #2563eb;
+            --accent-2: #7c3aed;
+            --accent-3: #db2777;
+            --accent-4: #059669;
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --table-border: #e2e8f0;
+            --table-header-bg: #f1f5f9;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(124, 58, 237, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(219, 39, 119, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2.5rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 0.8s ease-out;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            background: linear-gradient(to right, #1d4ed8, #7e22ce);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .filter-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            padding: 1.2rem;
+            border-radius: 1rem;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .filter-presets {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 1rem;
+            align-items: center;
+        }
+
+        .preset-btn {
+            padding: 0.4rem 1rem;
+            border: 1px solid var(--accent-1);
+            background: transparent;
+            color: var(--accent-1);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .preset-btn:hover {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .preset-btn.active {
+            background: var(--accent-1);
+            color: white;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+        }
+
+        .filter-custom {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-section label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .filter-section input[type="date"] {
+            padding: 0.5rem 0.8rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            font-family: 'Prompt', sans-serif;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .filter-section input[type="date"]:focus {
+            border-color: var(--accent-1);
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            color: white;
+            font-family: 'Prompt', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary { background: var(--accent-1); }
+
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 1.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+        }
+        .kpi-card.c1::before { background: #10b981; }
+        .kpi-card.c2::before { background: #3b82f6; }
+        .kpi-card.c3::before { background: #6366f1; }
+        .kpi-card.c4::before { background: #ef4444; }
+        .kpi-card.c5::before { background: #f59e0b; }
+        .kpi-card.c6::before { background: #8b5cf6; }
+        .kpi-card.c6 { 
+            grid-column: 1 / -1; 
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border-color: #ddd6fe;
+        }
+        .kpi-card.c6 .kpi-title { color: #6d28d9; font-weight: 600; }
+
+        .kpi-title {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 1600px) {
+            .charts-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 1.8rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .chart-header {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-canvas-wrapper {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+
+        .chart-canvas-wrapper.large {
+            height: 400px;
+        }
+
+        .table-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            padding: 1.8rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            /* เอา Scroll bar ออก เพื่อให้แสดงทั้งหมด */
+        }
+
+        .table-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .table-section h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            table-layout: fixed;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--table-border);
+            vertical-align: top;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        th {
+            background-color: var(--table-header-bg);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        /* Modal Popup Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 650px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--table-header-bg);
+            padding-bottom: 1rem;
+        }
+        .modal-header h3 { font-size: 1.4rem; color: var(--text-main); }
+        .close-btn { 
+            background: none; border: none; font-size: 1.5rem; 
+            cursor: pointer; color: var(--text-muted); 
+            transition: color 0.2s;
+        }
+        .close-btn:hover { color: var(--accent-3); }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1rem 1.5rem;
+            font-size: 0.95rem;
+        }
+        .detail-row {
+            display: contents; /* ให้ใช้ grid ของ parent */
+        }
+        .detail-label { 
+            font-weight: 600; 
+            color: var(--text-muted); 
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--table-header-bg);
+        }
+        .detail-value { 
+            color: var(--text-main); 
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--table-header-bg);
+            white-space: pre-wrap;
+        }
+
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: opacity 0.6s ease;
+        }
+
+        .spinner {
+            width: 60px; height: 60px;
+            border: 5px solid rgba(37, 99, 235, 0.1);
+            border-top-color: var(--accent-1);
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Print Specific CSS */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0.5cm;
+            }
+            body { 
+                background: white; 
+                color: black; 
+                padding: 0; 
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                font-size: 0.85rem;
+            }
+            .filter-section, .btn, #btn-print, .modal-overlay { 
+                display: none !important; 
+            }
+            .header {
+                margin-bottom: 0.5rem;
+            }
+            .header h1 {
+                background: none;
+                -webkit-text-fill-color: black;
+                font-size: 1.4rem;
+                margin-bottom: 0;
+            }
+            .kpi-container {
+                grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+                gap: 0.4rem;
+                margin-bottom: 0.8rem;
+            }
+            .kpi-card { 
+                padding: 0.5rem;
+                box-shadow: none; 
+                border: 1px solid #cbd5e1; 
+                break-inside: avoid;
+                min-width: 0 !important;
+            }
+            .kpi-title { font-size: 0.65rem; letter-spacing: -0.2px; margin-bottom: 2px; }
+            .kpi-value { font-size: 1.2rem; color: black !important; line-height: 1.2; }
+            .kpi-value span { font-size: 0.75rem !important; }
+            
+            #kpi-top-sale { padding: 0 !important; }
+            #kpi-top-sale > div { gap: 4px !important; margin-top: 2px !important; }
+            #kpi-top-sale > div > div { padding: 4px 8px !important; min-width: auto !important; }
+            #kpi-top-sale span { font-size: 0.75rem !important; }
+            
+            .charts-container {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.5rem;
+                margin-bottom: 0.8rem;
+            }
+            .chart-card { 
+                padding: 0.5rem;
+                box-shadow: none; 
+                border: 1px solid #cbd5e1; 
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .chart-header { 
+                font-size: 0.9rem;
+                color: black !important; 
+                margin-bottom: 0.2rem;
+            }
+            .chart-canvas-wrapper { height: 180px !important; }
+            .chart-canvas-wrapper.large { height: 230px !important; }
+            
+            /* ป้องกัน canvas ทะลุกรอบตอนปริ้น */
+            canvas {
+                max-width: 100% !important;
+                max-height: 100% !important;
+                object-fit: contain !important;
+            }
+            
+            .table-section {
+                padding: 1rem;
+                box-shadow: none;
+                border: 1px solid #cbd5e1;
+                page-break-before: always;
+                break-before: page;
+            }
+            .table-section h2 { 
+                color: black !important; 
+                font-size: 1.2rem;
+            }
+            table { white-space: normal; font-size: 0.85rem; } 
+            th, td { padding: 6px 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <div style="color: var(--text-muted); font-size: 1.1rem; letter-spacing: 1px;">กำลังโหลดข้อมูล...</div>
+    </div>
+
+    <div class="header">
+        <h1 style="display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px;">🚨 รายงานวิเคราะห์สถิติงานหลุดการติดตั้ง <span id="filter-status" style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">(แสดงข้อมูล: เดือนนี้)</span></h1>
+        <div style="display:flex; gap: 1rem; align-items: center;">
+            <div style="color: var(--text-muted); font-size: 0.95rem; background: #e2e8f0; padding: 8px 15px; border-radius: 20px;" id="last-update">
+                อัปเดตข้อมูลล่าสุด: กำลังโหลด...
+            </div>
+            <button class="btn btn-primary" id="btn-print" onclick="window.print()">
+                🖨️ พิมพ์ / PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- ส่วนกรองเวลา -->
+    <div class="filter-section">
+        <div class="filter-presets">
+            <span style="font-weight: 500; margin-right: 0.5rem;">กรองด่วน:</span>
+            <button class="preset-btn" id="btn-this-month" onclick="setPreset('this_month', this)">เดือนนี้</button>
+            <button class="preset-btn" id="btn-last-month" onclick="setPreset('last_month', this)">เดือนที่แล้ว</button>
+            <button class="preset-btn" id="btn-3-months" onclick="setPreset('3_months', this)">3 เดือน</button>
+            <button class="preset-btn" id="btn-6-months" onclick="setPreset('6_months', this)">6 เดือน</button>
+            <button class="preset-btn" id="btn-this-year" onclick="setPreset('this_year', this)">ปีนี้</button>
+            <button class="preset-btn" id="btn-all" onclick="setPreset('all', this)">ทั้งหมด</button>
+        </div>
+        
+        <div class="filter-custom">
+            <label>กำหนดเอง:</label>
+            <input type="date" id="start-date" title="เริ่มตั้งแต่วันที่">
+            <label>ถึง</label>
+            <input type="date" id="end-date" title="ถึงวันที่">
+            
+            <label style="margin-left: 0.5rem;">ฝ่ายขาย (Col AA):</label>
+            <select id="sales-filter" onchange="applyFilter(!!document.querySelector('.preset-btn.active'))" style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; outline: none; font-family: 'Prompt', sans-serif;">
+                <option value="all">เซลล์ทุกคน</option>
+            </select>
+
+            <button class="btn btn-primary" style="margin-left: 0.5rem;" onclick="applyFilter(false)">กรองข้อมูล</button>
+        </div>
+    </div>
+
+    <div class="kpi-container">
+        <div class="kpi-card c1">
+            <div class="kpi-title">🤝 พบลูกค้าใหม่ทั้งหมด</div>
+            <div class="kpi-value" id="kpi-total-newcust">0 <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">งาน</span></div>
+        </div>
+        <div class="kpi-card c2">
+            <div class="kpi-title">🛠️ ติดตั้งทั้งหมด</div>
+            <div class="kpi-value" id="kpi-total-install">0 <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">งาน</span></div>
+        </div>
+        <div class="kpi-card c3">
+            <div class="kpi-title">📏 พื้นที่ติดตั้ง</div>
+            <div class="kpi-value" id="kpi-install-area">0 <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">ตร.ฟ.</span></div>
+        </div>
+        <div class="kpi-card c4">
+            <div class="kpi-title">💔 จำนวนงานหลุด</div>
+            <div class="kpi-value" id="kpi-total-jobs">0 <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">งาน</span></div>
+        </div>
+        <div class="kpi-card c5">
+            <div class="kpi-title">📉 พื้นที่หลุด</div>
+            <div class="kpi-value" id="kpi-total-area">0 <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">ตร.ฟ.</span></div>
+        </div>
+        <div class="kpi-card c6">
+            <div class="kpi-title">👤 งานหลุดแยกตามเซลล์</div>
+            <div class="kpi-value" id="kpi-top-sale" style="color: #8b5cf6; width: 100%;"> - </div>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-card" style="grid-column: span 2;">
+            <div class="chart-header">👤 สถิติพนักงานขาย (งานหลุด / พบลูกค้า / ยอดขายงานติดตั้ง)</div>
+            <div class="chart-canvas-wrapper large"><canvas id="saleChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-header">🏢 สัดส่วนงานหลุด แยกตามแบรนด์ (Brand)</div>
+            <div class="chart-canvas-wrapper"><canvas id="companyChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-header">🎯 สัดส่วนงานหลุด แยกตามประเภทลูกค้า</div>
+            <div class="chart-canvas-wrapper"><canvas id="customerChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="table-section">
+        <div class="table-section-header">
+            <h2>📋 รายละเอียดข้อมูลงานหลุด (ตามช่วงเวลาที่เลือก)</h2>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">💡 คลิ๊กที่แถวเพื่อดูรายละเอียดเพิ่มเติม</span>
+        </div>
+        <!-- เอา scroll ออก เพื่อให้ปริ้นได้ทั้งหมดและไม่ต้องสกอร์ -->
+        <div style="overflow-x: auto;">
+            <table id="detailTable">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">วันที่ (อัปเดต)</th>
+                        <th style="width: 8%;">เซลล์ (Sale)</th>
+                        <th style="width: 15%;">ชื่อลูกค้า</th>
+                        <th style="width: 25%;">สถานที่หน้างาน</th>
+                        <th style="width: 10%;">พื้นที่ (ตร.ฟ.)</th>
+                        <th style="width: 32%;">สาเหตุหลัก</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- ข้อมูลจะถูกเติมด้วย JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Popup สำหรับดูรายละเอียด -->
+    <div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>🔍 รายละเอียดข้อมูลงานหลุด</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="detail-grid" id="modal-details">
+                <!-- ข้อมูลรายละเอียดจะถูกใส่ที่นี่ -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/1Ag7yh0SFSqGfm3LTNinHwlwV6h5Xa4M2yIuf03mq2uc/export?format=csv&gid=949197576';
+
+        const colors = [
+            '#2563eb', '#7c3aed', '#db2777', '#059669', '#d97706', 
+            '#0891b2', '#4f46e5', '#65a30d', '#ea580c', '#0d9488'
+        ];
+
+        Chart.defaults.color = '#475569';
+        Chart.defaults.font.family = "'Prompt', sans-serif";
+        Chart.defaults.font.size = 13;
+
+        let globalData = [];
+        let chartInstances = {};
+
+        function parseThaiDate(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.trim().split('/');
+            if (parts.length === 3) {
+                const d = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                let y = parseInt(parts[2], 10);
+                
+                // รองรับปีแบบ 2 หลัก เช่น 26 -> 2026
+                if (y < 100) {
+                    y += 2000;
+                } 
+                // รองรับปีพุทธศักราช เช่น 2569 -> 2026
+                else if (y > 2400) {
+                    y -= 543;
+                }
+                
+                return new Date(y, m, d);
+            }
+            return null;
+        }
+
+        // ป้องกัน Cache เพื่อให้ได้ข้อมูลใหม่ล่าสุดเสมอเมื่อเปิดเว็บ
+        const fetchUrl = csvUrl + '&t=' + new Date().getTime();
+
+        Papa.parse(fetchUrl, {
+            download: true,
+            header: false,
+            skipEmptyLines: true,
+            complete: function(results) {
+                const rawData = results.data;
+                if (rawData.length < 3) {
+                    alert("ไม่พบข้อมูล หรือไฟล์ Google Sheet อาจไม่ได้เปิดแชร์สิทธิ์เป็น 'Anyone with the link can view' กรุณาตรวจสอบสิทธิ์การแชร์ไฟล์ต้นฉบับครับ");
+                    document.getElementById('loader').style.display = 'none';
+                    return;
+                }
+
+                const headers = rawData[2]; // แถวที่ 3 เป็น Header
+                let parsedData = [];
+                for (let i = 3; i < rawData.length; i++) {
+                    let obj = {};
+                    for (let j = 0; j < headers.length; j++) {
+                        let headerName = headers[j];
+                        if (!headerName) continue;
+                        if (obj.hasOwnProperty(headerName)) {
+                            headerName = headerName + '_' + j; // ป้องกันชื่อคอลัมน์ซ้ำกัน เช่น Sale
+                        }
+                        obj[headerName] = rawData[i][j];
+                    }
+                    obj['_areaColT'] = rawData[i][19];
+                    parsedData.push(obj);
+                }
+
+                // เราจะไม่กรองข้อมูลออกที่นี่แล้ว เพื่อให้รองรับสถิติ "พบลูกค้า" และ "งานติดตั้ง"
+                globalData = parsedData.map(row => {
+                    let dStrLost = row['วันที่ติดตั้ง'] || row['วันที่'] || ''; 
+                    row._parsedDate = parseThaiDate(dStrLost);
+                    row._displayDate = dStrLost ? dStrLost.trim() : '-';
+
+                    let dStrNew = row['วันที่'] || '';
+                    row._dateColB = parseThaiDate(dStrNew);
+
+                    row._saleAA = row['Sale_26'] ? row['Sale_26'].trim() : 'ไม่ระบุ';
+                    row._status = row['สถานะ'] ? row['สถานะ'].trim() : '';
+                    row._reason = row['สาเหตุ'] ? row['สาเหตุ'].trim() : '';
+                    row._custType = row['ประเภท ลค.(1)'] ? row['ประเภท ลค.(1)'].trim() : '';
+                    
+                    let salesRaw = row['ยอดรวม'];
+                    if (typeof salesRaw === 'string') salesRaw = salesRaw.replace(/,/g, '');
+                    row._totalSales = parseFloat(salesRaw) || 0;
+                    
+                    row._isLostSale = (row._status === 'ไม่ติดตั้ง' && row._reason !== '');
+
+                    return row;
+                });
+
+                // Dropdown ถูกจัดการใน applyFilter แล้วแบบไดนามิก
+
+                const defaultBtn = document.getElementById('btn-this-month');
+                setPreset('this_month', defaultBtn);
+                
+                setTimeout(() => {
+                    document.getElementById('loader').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loader').style.display = 'none', 600);
+                }, 800);
+            },
+            error: function(err) {
+                alert("เกิดข้อผิดพลาดในการโหลดข้อมูล: " + err);
+            }
+        });
+
+        function formatDateForInput(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function setPreset(type, btnElement) {
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+
+            const today = new Date();
+            let start = null;
+            let end = null;
+            let statusLabel = "";
+            
+            if (type === 'this_month') {
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+                end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                statusLabel = "เดือนนี้";
+            } else if (type === 'last_month') {
+                start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                end = new Date(today.getFullYear(), today.getMonth(), 0);
+                statusLabel = "เดือนที่แล้ว";
+            } else if (type === '3_months') {
+                start = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+                end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                statusLabel = "3 เดือนล่าสุด";
+            } else if (type === '6_months') {
+                start = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+                end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                statusLabel = "6 เดือนล่าสุด";
+            } else if (type === 'this_year') {
+                start = new Date(today.getFullYear(), 0, 1);
+                end = new Date(today.getFullYear(), 11, 31);
+                statusLabel = "ปีนี้";
+            } else if (type === 'all') {
+                start = null;
+                end = null;
+                statusLabel = "ทั้งหมด";
+            }
+            
+            if(start && end) {
+                document.getElementById('start-date').value = formatDateForInput(start);
+                document.getElementById('end-date').value = formatDateForInput(end);
+            } else {
+                document.getElementById('start-date').value = '';
+                document.getElementById('end-date').value = '';
+            }
+            
+            document.getElementById('filter-status').innerText = `(แสดงข้อมูล: ${statusLabel})`;
+            applyFilter(true);
+        }
+
+        function applyFilter(fromPreset = false) {
+            if (!fromPreset) {
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            }
+
+            const startVal = document.getElementById('start-date').value;
+            const endVal = document.getElementById('end-date').value;
+            
+            let sDate = startVal ? new Date(startVal) : null;
+            if(sDate) sDate.setHours(0,0,0,0);
+            let eDate = endVal ? new Date(endVal) : null;
+            if(eDate) eDate.setHours(23,59,59,999);
+
+            let dateFiltered = globalData.filter(row => {
+                let lostMatch = false;
+                if (row._isLostSale && row._parsedDate) {
+                    lostMatch = true;
+                    if (sDate && row._parsedDate < sDate) lostMatch = false;
+                    if (eDate && row._parsedDate > eDate) lostMatch = false;
+                }
+                
+                let activityMatch = false;
+                if (row._dateColB) {
+                    activityMatch = true;
+                    if (sDate && row._dateColB < sDate) activityMatch = false;
+                    if (eDate && row._dateColB > eDate) activityMatch = false;
+                }
+                
+                return lostMatch || activityMatch;
+            });
+
+            const salesSelect = document.getElementById('sales-filter');
+            let currentSale = salesSelect.value;
+            let uniqueSales = [...new Set(dateFiltered.map(r => r._saleAA))].filter(s => s !== 'ไม่ระบุ').sort();
+            
+            salesSelect.innerHTML = '<option value="all">เซลล์ทุกคน</option>';
+            let keepSelection = false;
+            uniqueSales.forEach(s => {
+                let opt = document.createElement('option');
+                opt.value = s;
+                opt.innerText = s;
+                salesSelect.appendChild(opt);
+                if (s === currentSale) keepSelection = true;
+            });
+            salesSelect.value = keepSelection ? currentSale : 'all';
+            currentSale = salesSelect.value;
+
+            let finalFiltered = dateFiltered;
+            if (currentSale !== 'all') {
+                finalFiltered = finalFiltered.filter(row => row._saleAA === currentSale);
+            }
+
+            if (!fromPreset) {
+                if (!startVal && !endVal) {
+                    document.getElementById('filter-status').innerText = "(แสดงข้อมูล: ทั้งหมด)";
+                } else {
+                    document.getElementById('filter-status').innerText = "(แสดงข้อมูล: ช่วงเวลาที่กำหนดเอง)";
+                }
+            }
+
+            processData(finalFiltered, sDate, eDate);
+        }
+
+        function destroyChart(canvasId) {
+            if(chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+        }
+
+        function processData(data, sDate, eDate) {
+            const now = new Date();
+            document.getElementById('last-update').innerText = `อัปเดตข้อมูลล่าสุด: ${now.toLocaleDateString('th-TH')} เวลา ${now.toLocaleTimeString('th-TH')} น.`;
+
+            let totalJobs = 0;
+            let totalArea = 0;
+            let totalNewCust = 0;
+            let totalInstallCount = 0;
+            let totalInstallArea = 0;
+            
+            const reasons = {};
+            const salesData = {};
+            const companies = {};
+            const customerTypes = {};
+
+            const tbody = document.querySelector('#detailTable tbody');
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                let sale = row._saleAA;
+                if (!salesData[sale]) salesData[sale] = { lost: 0, newCust: 0, install: 0, lostArea: 0 };
+
+                let areaRaw = row['_areaColT'];
+                if (typeof areaRaw === 'string') areaRaw = areaRaw.replace(/,/g, '');
+                let area = parseFloat(areaRaw) || 0;
+
+                // Activity Check (New Customer / Sales)
+                let inActivityDate = true;
+                if (!row._dateColB) inActivityDate = false;
+                else {
+                    if (sDate && row._dateColB < sDate) inActivityDate = false;
+                    if (eDate && row._dateColB > eDate) inActivityDate = false;
+                }
+
+                if (inActivityDate) {
+                    if (row._custType && row._custType !== 'N/A') {
+                        salesData[sale].newCust++;
+                        totalNewCust++;
+                    }
+                    if (row._status.includes('ติดตั้งแล้ว')) {
+                        salesData[sale].install += row._totalSales;
+                        totalInstallCount++;
+                        totalInstallArea += area;
+                    }
+                }
+
+                // Lost Sale Check
+                let inLostDate = true;
+                if (!row._isLostSale) inLostDate = false;
+                else if (!row._parsedDate) inLostDate = false;
+                else {
+                    if (sDate && row._parsedDate < sDate) inLostDate = false;
+                    if (eDate && row._parsedDate > eDate) inLostDate = false;
+                }
+
+                if (inLostDate) {
+                    totalJobs++;
+                    totalArea += area;
+
+                    let reason = row._reason ? row._reason : 'ไม่ระบุสาเหตุ';
+                    reasons[reason] = (reasons[reason] || 0) + 1;
+
+                    salesData[sale].lost++;
+                    salesData[sale].lostArea += area;
+
+                    let company = row['บริษัท'] ? row['บริษัท'].trim() : 'ไม่ระบุ';
+                    companies[company] = (companies[company] || 0) + 1;
+
+                    let custType = row._custType ? row._custType : 'ไม่ระบุ';
+                    customerTypes[custType] = (customerTypes[custType] || 0) + 1;
+
+                    let customerName = row['ชื่อลูกค้า'] ? row['ชื่อลูกค้า'].trim() : '-';
+                    let location = row['สถานที่หน้างาน'] ? row['สถานที่หน้างาน'].trim() : '-';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row._displayDate}</td>
+                        <td>${sale}</td>
+                        <td>${customerName}</td>
+                        <td>${location}</td>
+                        <td>${area.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                        <td>${row._reason || '-'}</td>
+                    `;
+                    
+                    // แนบ event เปิด Popup
+                    tr.onclick = () => showModal(row);
+
+                    tbody.appendChild(tr);
+                }
+            });
+
+            if(totalJobs === 0 && Object.keys(salesData).length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #64748b;">ไม่พบข้อมูลในช่วงเวลาที่เลือก</td></tr>`;
+                document.getElementById('kpi-top-sale').innerText = '-';
+                destroyChart('saleChart');
+                destroyChart('companyChart');
+                destroyChart('customerChart');
+            } else {
+                const sortedByLost = Object.keys(salesData).sort((a,b) => salesData[b].lost - salesData[a].lost);
+                
+                const lostSalesList = sortedByLost.filter(l => salesData[l].lost > 0);
+                if (lostSalesList.length > 0) {
+                    let html = `<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; font-size: 0.95rem; width: 100%; margin-top: 5px;">`;
+                    lostSalesList.forEach(l => {
+                        let jobs = salesData[l].lost;
+                        let area = salesData[l].lostArea.toLocaleString(undefined, {maximumFractionDigits: 0});
+                        html += `<div style="display: flex; flex-direction: column; justify-content: center; background: #ffffff; padding: 10px 14px; border-radius: 8px; border: 1px solid #ddd6fe; box-shadow: 0 2px 4px rgba(139, 92, 246, 0.05); gap: 4px;">
+                            <span style="font-weight: 700; color: #4c1d95; font-size: 1rem;">${l}</span>
+                            <span style="color: #6d28d9; font-weight: normal; font-size: 0.85rem;">${jobs} งาน / <span style="color:#ef4444; font-weight: 600;">${area} ตร.ฟ.</span></span>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                    document.getElementById('kpi-top-sale').innerHTML = html;
+                } else {
+                    document.getElementById('kpi-top-sale').innerText = '-';
+                }
+
+                const sortedByNewCust = Object.keys(salesData).sort((a,b) => salesData[b].newCust - salesData[a].newCust);
+
+                const filteredSalesData = {};
+                sortedByNewCust.forEach(l => {
+                    if (salesData[l].lost > 0 || salesData[l].newCust > 0 || salesData[l].install > 0) {
+                        filteredSalesData[l] = salesData[l];
+                    }
+                });
+
+                createSalespersonChart('saleChart', filteredSalesData);
+                createDoughnutChart('companyChart', Object.entries(companies).sort((a,b) => b[1] - a[1]));
+                createDoughnutChart('customerChart', Object.entries(customerTypes).sort((a,b) => b[1] - a[1]));
+            }
+
+            document.getElementById('kpi-total-newcust').innerHTML = `${totalNewCust.toLocaleString()} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">งาน</span>`;
+            document.getElementById('kpi-total-install').innerHTML = `${totalInstallCount.toLocaleString()} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">งาน</span>`;
+            document.getElementById('kpi-install-area').innerHTML = `${totalInstallArea.toLocaleString(undefined, {maximumFractionDigits: 0})} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">ตร.ฟ.</span>`;
+            document.getElementById('kpi-total-jobs').innerHTML = `${totalJobs.toLocaleString()} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">งาน</span>`;
+            document.getElementById('kpi-total-area').innerHTML = `${totalArea.toLocaleString(undefined, {maximumFractionDigits: 0})} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">ตร.ฟ.</span>`;
+        }
+
+        // Functions for Modals
+        function showModal(row) {
+            const container = document.getElementById('modal-details');
+            let html = '';
+            
+            // วนลูปอ่านข้อมูลทุกคอลัมน์จากแถวที่ถูกคลิก
+            for(let key in row) {
+                // ข้ามคีย์ระบบ (ที่ขึ้นต้นด้วย _) และคอลัมน์ที่ว่างเปล่า
+                if(key.startsWith('_') || row[key] === null || row[key] === '' || row[key] === undefined) continue;
+                
+                let displayKey = key;
+                if(displayKey === 'เดือนติดตั้ง') displayKey = 'เดือนอัพเดต';
+                if(displayKey === 'วันที่ติดตั้ง') displayKey = 'วันที่อัพเดต';
+                if(displayKey === 'Sวันที่บริษัทต่อ') displayKey = 'ID';
+                
+                html += `
+                    <div class="detail-row">
+                        <div class="detail-label">${displayKey}</div>
+                        <div class="detail-value">${row[key]}</div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+            document.getElementById('detail-modal').classList.add('active');
+        }
+
+        function closeModal(event) {
+            // ถ้ามี event ตรวจสอบว่าคลิกที่ overlay เท่านั้น ถึงจะปิด (ป้องกันการกดโดนข้างในแล้วปิด)
+            if(event && event.target.id !== 'detail-modal') return;
+            document.getElementById('detail-modal').classList.remove('active');
+        }
+
+        // Charts Init
+        Chart.register(ChartDataLabels);
+
+        function createSalespersonChart(canvasId, salesData) {
+            destroyChart(canvasId);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            const labels = Object.keys(salesData);
+            const lostData = labels.map(l => salesData[l].lost || 0);
+            const newCustData = labels.map(l => salesData[l].newCust || 0);
+            const installSalesData = labels.map(l => salesData[l].install || 0);
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'งานหลุด (ราย)',
+                            data: lostData,
+                            backgroundColor: '#7c3aed',
+                            borderRadius: 4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'พบลูกค้า (ราย)',
+                            data: newCustData,
+                            backgroundColor: '#10b981',
+                            borderRadius: 4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'ยอดขายงานติดตั้ง (บาท)',
+                            data: installSalesData,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    layout: { padding: { top: 20 } },
+                    plugins: { 
+                        legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)' },
+                        datalabels: {
+                            display: function(context) { return context.dataset.data[context.dataIndex] > 0; },
+                            anchor: 'end', align: 'top', color: '#475569', font: { weight: 'bold', size: 10 },
+                            formatter: function(value, context) {
+                                if (context.dataset.yAxisID === 'y1') return (value / 1000).toFixed(0) + 'k';
+                                return value;
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { type: 'linear', display: true, position: 'left', grid: { color: 'rgba(0,0,0,0.05)' }, title: { display: true, text: 'จำนวนราย (งาน)' } },
+                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false },
+                            ticks: { callback: function(value) { return (value / 1000) + 'k'; } },
+                            title: { display: true, text: 'ยอดขาย (บาท)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDoughnutChart(canvasId, dataArray) {
+            destroyChart(canvasId);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: dataArray.map(item => item[0]),
+                    datasets: [{
+                        data: dataArray.map(item => item[1]),
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#475569', padding: 20 } },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold' },
+                            formatter: (value) => {
+                                return value;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
