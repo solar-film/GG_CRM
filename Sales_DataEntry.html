@@ -481,9 +481,12 @@
                 
                 const reason = job['สาเหตุ'] || '-';
                 
-                let statusColor = '#64748b';
-                if (currentStatus === 'ปิดการขาย') statusColor = '#10b981';
-                else if (currentStatus === 'งานหลุด' || currentStatus === 'ไม่รับงาน') statusColor = '#ef4444';
+                let statusColor = '#64748b'; // Default (Grey)
+                if (currentStatus === 'ปิดการขาย') statusColor = '#10b981'; // Green
+                else if (currentStatus === 'งานหลุด' || currentStatus === 'ไม่รับงาน' || currentStatus === 'ยกเลิก') statusColor = '#ef4444'; // Red
+                else if (currentStatus.includes('ติดตาม')) statusColor = '#f59e0b'; // Orange
+                else if (currentStatus.includes('เสนอราคา')) statusColor = '#3b82f6'; // Blue
+                else if (currentStatus.includes('นัด') || currentStatus.includes('วัดพื้นที่')) statusColor = '#8b5cf6'; // Purple
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
