@@ -1200,12 +1200,12 @@
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>
-                            <div>${row._displayDate}</div>
-                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;" title="วันที่พบลค. (Col B)">พบ: ${row._displayDateColB}</div>
-                        </td>
+                        <td>${row._displayDate}</td>
                         <td>${sale}</td>
-                        <td>${customerName}</td>
+                        <td>
+                            <div>${customerName}</div>
+                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;" title="วันที่พบลค. (Col B)">พบ: ${row._displayDateColB}</div>
+                        </td>
                         <td>${location}</td>
                         <td>${area.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
                         <td>${row._reason || '-'}</td>
