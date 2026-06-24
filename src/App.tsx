@@ -10,7 +10,8 @@ import {
   Calendar,
   ClipboardList,
   FileText,
-  List
+  List,
+  LayoutDashboard
 } from 'lucide-react';
 import DataList from './pages/DataList';
 import DataForm from './pages/DataForm';
