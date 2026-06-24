@@ -932,6 +932,7 @@
                         obj[headerName] = rawData[i][j];
                     }
                     obj['_areaColT'] = rawData[i][19];
+                    obj['_dateColZ'] = rawData[i][25];
                     parsedData.push(obj);
                 }
 
@@ -943,6 +944,9 @@
 
                     let dStrNew = row['วันที่'] || '';
                     row._dateColB = parseThaiDate(dStrNew);
+
+                    let dStrSales = row._dateColZ || '';
+                    row._parsedSalesDate = parseThaiDate(dStrSales);
 
                     row._saleAA = row['Sale_26'] ? row['Sale_26'].trim() : 'ไม่ระบุ';
                     row._status = row['สถานะ'] ? row['สถานะ'].trim() : '';
@@ -1055,7 +1059,14 @@
                     if (eDate && row._dateColB > eDate) activityMatch = false;
                 }
                 
-                return lostMatch || activityMatch;
+                let salesMatch = false;
+                if (row._parsedSalesDate) {
+                    salesMatch = true;
+                    if (sDate && row._parsedSalesDate < sDate) salesMatch = false;
+                    if (eDate && row._parsedSalesDate > eDate) salesMatch = false;
+                }
+                
+                return lostMatch || activityMatch || salesMatch;
             });
 
             const salesSelect = document.getElementById('sales-filter');
@@ -1136,6 +1147,17 @@
                         salesData[sale].newCust++;
                         totalNewCust++;
                     }
+                }
+
+                // Installation & Sales Check (Col Z)
+                let inSalesDate = true;
+                if (!row._parsedSalesDate) inSalesDate = false;
+                else {
+                    if (sDate && row._parsedSalesDate < sDate) inSalesDate = false;
+                    if (eDate && row._parsedSalesDate > eDate) inSalesDate = false;
+                }
+
+                if (inSalesDate) {
                     if (row._status.includes('ติดตั้งแล้ว')) {
                         salesData[sale].install += row._totalSales;
                         totalInstallCount++;
