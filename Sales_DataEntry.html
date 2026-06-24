@@ -185,7 +185,11 @@
                 <option value="">-- กำลังโหลดข้อมูล... --</option>
             </select>
         </div>
-        <button class="btn" id="btn-login" onclick="loadJobs()" disabled>ค้นหางานของฉัน</button>
+        <div class="form-group">
+            <label>รหัสผ่าน</label>
+            <input type="password" class="form-control" id="input-password" placeholder="ใส่รหัสผ่านของคุณ">
+        </div>
+        <button class="btn" id="btn-login" onclick="loadJobs()" disabled>เข้าสู่ระบบเพื่อดูงานของฉัน</button>
     </div>
 
     <div class="spinner" id="loading-spinner">กำลังโหลดข้อมูล...</div>
@@ -294,17 +298,38 @@
 
     function loadJobs() {
         const saleName = document.getElementById('sale-select').value;
+        const passwordInput = document.getElementById('input-password').value.trim();
+
         if(!saleName) {
             Swal.fire('แจ้งเตือน', 'กรุณาเลือกชื่อเซลล์ก่อนครับ', 'warning');
             return;
         }
 
+        // ค้นหารหัสผ่านของเซลล์จากข้อมูลทั้งหมด (หาแถวที่มีชื่อเซลล์ตรงกัน และมีข้อมูลในคอลัมน์ 'รหัสผ่าน')
+        let correctPassword = null;
+        for (let i = 0; i < globalData.length; i++) {
+            const row = globalData[i];
+            const rowSale = row['Sale_26'] ? row['Sale_26'].trim() : '';
+            if (rowSale === saleName && row['รหัสผ่าน'] && row['รหัสผ่าน'].trim() !== '') {
+                correctPassword = row['รหัสผ่าน'].trim();
+                break;
+            }
+        }
+
+        // ถ้าระบบเจอว่ามีการตั้งรหัสผ่านไว้ใน Google Sheets แต่เซลล์ใส่รหัสไม่ตรง
+        if (correctPassword !== null && passwordInput !== correctPassword) {
+            Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาตรวจสอบรหัสผ่านอีกครั้งครับ', 'error');
+            return;
+        }
+
+        // ถ้าไม่มีการตั้งรหัสผ่านไว้ใน Sheet ก็ให้เข้าได้เลย (หรือจะบังคับว่าต้องมีรหัสก็ได้ ในที่นี้อนุโลมให้เข้าได้ถ้าไม่ได้ตั้ง)
+        // ถ้ารหัสผ่านตรงกัน ให้โหลดข้อมูลงาน
+        
         document.getElementById('loading-spinner').style.display = 'block';
         document.getElementById('jobs-container').style.display = 'none';
 
         setTimeout(() => {
             // Filter Jobs for this sale that are NOT closed or lost yet
-            // สมมติว่าเอางานที่สถานะยังไม่เป็น "ปิดการขาย", "งานหลุด", "ไม่รับงาน"
             const myJobs = globalData.filter(row => {
                 const rowSale = row['Sale_26'] ? row['Sale_26'].trim() : '';
                 const status = row['สถานะ'] ? row['สถานะ'].trim() : '';
