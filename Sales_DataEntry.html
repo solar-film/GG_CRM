@@ -180,13 +180,9 @@
 
     <div class="card" id="login-section">
         <div class="form-group">
-            <label>1. เลือกวันที่หน้างาน</label>
-            <input type="date" class="form-control" id="filter-date" onchange="updateSaleDropdown()">
-        </div>
-        <div class="form-group">
-            <label>2. เลือกชื่อเซลล์ของคุณ</label>
+            <label>เลือกชื่อเซลล์ของคุณ</label>
             <select class="form-control" id="sale-select">
-                <option value="">-- กรุณาเลือกวันที่ก่อน --</option>
+                <option value="">-- กำลังโหลดข้อมูล... --</option>
             </select>
         </div>
         <div class="form-group">
@@ -199,8 +195,16 @@
     <div class="spinner" id="loading-spinner">กำลังโหลดข้อมูล...</div>
 
     <div id="jobs-container">
+        <div class="card" style="margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <h2 style="margin: 0;">งานของฉัน</h2>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-size: 0.9rem; font-weight: 500;">📅 กรองตามวันที่:</label>
+                <input type="date" class="form-control" id="job-filter-date" onchange="renderJobs()" style="width: auto; padding: 0.4rem;">
+                <button class="btn btn-cancel" style="margin-top: 0; padding: 0.4rem 0.8rem;" onclick="clearFilter()">ดูทั้งหมด</button>
+            </div>
+        </div>
+        
         <div class="card">
-            <h2 style="margin-top: 0;">งานที่กำลังดำเนินการ</h2>
             <div id="jobs-list"></div>
         </div>
     </div>
@@ -258,6 +262,7 @@
     let globalData = [];
     let salePasswords = {}; // เก็บข้อมูลรหัสผ่านแบบ Dynamic
     let currentJob = null;
+    let loggedInSaleName = '';
 
     // ป้องกัน Cache เพื่อให้ได้ข้อมูลใหม่ล่าสุดเสมอเมื่อเปิดเว็บ
     const fetchUrl = SHEET_CSV_URL + '&t=' + new Date().getTime();
@@ -311,30 +316,17 @@
                 }
                 parsedData.push(obj);
             }
-
             globalData = parsedData;
 
-            // โหลดรหัสผ่านหลังจากโหลดข้อมูลหลักเสร็จ
-            const passwordFetchUrl = PASSWORDS_CSV_URL + '&t=' + new Date().getTime();
-            Papa.parse(passwordFetchUrl, {
+            // Load Passwords
+            Papa.parse(PASSWORDS_CSV_URL, {
                 download: true,
-                header: true, // กำหนดให้แถวแรกเป็น Header (ชื่อคอลัมน์)
-                skipEmptyLines: true,
-                complete: function(pwdResults) {
-                    const pwdData = pwdResults.data;
-                    pwdData.forEach(row => {
-                        // สมมติว่าคอลัมน์ชื่อ "ฝ่ายขาย" และ "รหัสผ่าน" (อ้างอิงตามรูปตัวอย่าง)
-                        const saleName = row['ฝ่ายขาย'] || row['Sale'] || Object.values(row)[0];
-                        const password = row['รหัสผ่าน'] || row['Password'] || Object.values(row)[1];
-                        if (saleName && password) {
-                            salePasswords[String(saleName).trim()] = String(password).trim();
-                        }
+                header: true,
+                complete: function(res) {
+                    res.data.forEach(row => {
+                        if(row.Sale) salePasswords[row.Sale] = row.Password;
                     });
-
-                    // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
-                    const today = new Date();
-                    document.getElementById('filter-date').value = formatDateForInput(today);
-
+                    
                     updateSaleDropdown();
                     document.getElementById('btn-login').disabled = false;
                 }
@@ -343,37 +335,25 @@
     });
 
     function updateSaleDropdown() {
-        const selectedDateStr = document.getElementById('filter-date').value;
         let saleSelect = document.getElementById('sale-select');
-        
-        if (!selectedDateStr) {
-            saleSelect.innerHTML = '<option value="">-- กรุณาเลือกวันที่ก่อน --</option>';
-            return;
-        }
-
-        const parts = selectedDateStr.split('-');
-        const filterDateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-
         let salesSet = new Set();
         globalData.forEach(row => {
-            let rowDateObj = parseThaiDate(row['วันที่'] || '');
-            if (rowDateObj && rowDateObj.getTime() === filterDateObj.getTime()) {
-                let sale = row['Sale_26'] ? String(row['Sale_26']).trim() : null;
-                if(sale) salesSet.add(sale);
-            }
+            let sale = row['Sale_26'] ? String(row['Sale_26']).trim() : null;
+            if(sale) salesSet.add(sale);
         });
 
         saleSelect.innerHTML = '<option value="">-- เลือกเซลล์ --</option>';
-        if (salesSet.size === 0) {
-            saleSelect.innerHTML = '<option value="">-- ไม่มีงานในวันนี้ --</option>';
-        } else {
-            Array.from(salesSet).sort().forEach(sale => {
-                let opt = document.createElement('option');
-                opt.value = sale;
-                opt.textContent = sale;
-                saleSelect.appendChild(opt);
-            });
-        }
+        Array.from(salesSet).sort().forEach(sale => {
+            let opt = document.createElement('option');
+            opt.value = sale;
+            opt.textContent = sale;
+            saleSelect.appendChild(opt);
+        });
+    }
+
+    function clearFilter() {
+        document.getElementById('job-filter-date').value = '';
+        renderJobs();
     }
 
     function loadJobs() {
@@ -385,68 +365,94 @@
             return;
         }
 
-        // ตรวจสอบรหัสผ่านที่ดึงมาจาก Google Sheets (ชีต รหัสผ่าน)
         const correctPassword = salePasswords[saleName];
-
         if (correctPassword && passwordInput !== correctPassword) {
             Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาตรวจสอบรหัสผ่านอีกครั้งครับ', 'error');
             return;
         } else if (!correctPassword && passwordInput !== saleName) {
-            // เผื่อมีเซลล์คนใหม่ที่ยังไม่ได้เพิ่มในรายชื่อข้างต้น ให้ใช้ชื่อตัวเองเป็นรหัสผ่าน
             Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาตรวจสอบรหัสผ่านอีกครั้งครับ', 'error');
             return;
         }
         
+        loggedInSaleName = saleName;
+        document.getElementById('login-section').style.display = 'none';
         document.getElementById('loading-spinner').style.display = 'block';
-        document.getElementById('jobs-container').style.display = 'none';
 
         setTimeout(() => {
-            const parts = document.getElementById('filter-date').value.split('-');
-            const filterDateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-
-            // แสดงงานทั้งหมดของเซลล์คนนั้นในวันที่เลือก (แสดงข้อมูลทั้งหมด ไม่กรองสถานะออก)
-            const myJobs = globalData.filter(row => {
-                const rowSale = row['Sale_26'] ? String(row['Sale_26']).trim() : '';
-                let rowDateObj = parseThaiDate(row['วันที่'] || '');
-                const isSameDate = rowDateObj && rowDateObj.getTime() === filterDateObj.getTime();
-                
-                return rowSale === saleName && isSameDate;
-            });
-
-            const listContainer = document.getElementById('jobs-list');
-            listContainer.innerHTML = '';
-
-            if(myJobs.length === 0) {
-                listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่มีงานค้างในวันนี้ครับ 🎉</p>';
-            } else {
-                myJobs.forEach(job => {
-                    const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
-                    const location = job['สถานที่หน้างาน'] || '-';
-                    const date = job['วันที่'] || '-';
-                    const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : 'ยังไม่ระบุสถานะ';
-                    
-                    let statusColor = '#64748b';
-                    if (currentStatus === 'ปิดการขาย') statusColor = '#10b981';
-                    else if (currentStatus === 'งานหลุด' || currentStatus === 'ไม่รับงาน') statusColor = '#ef4444';
-
-                    const card = document.createElement('div');
-                    card.className = 'job-card';
-                    card.innerHTML = `
-                        <div class="job-info">
-                            <h3>${custName} <span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">${currentStatus}</span></h3>
-                            <p>📅 วันที่พบ: ${date} | 📍 ${location}</p>
-                        </div>
-                        <div class="job-action">
-                            <button onclick="openModal('${encodeURIComponent(custName)}', '${encodeURIComponent(saleName)}', '${encodeURIComponent(location)}')">อัปเดต</button>
-                        </div>
-                    `;
-                    listContainer.appendChild(card);
-                });
-            }
-
             document.getElementById('loading-spinner').style.display = 'none';
             document.getElementById('jobs-container').style.display = 'block';
+            
+            document.getElementById('job-filter-date').value = '';
+            renderJobs();
         }, 500);
+    }
+
+    function renderJobs() {
+        if (!loggedInSaleName) return;
+
+        const filterDateStr = document.getElementById('job-filter-date').value;
+        let filterDateObj = null;
+        if (filterDateStr) {
+            const parts = filterDateStr.split('-');
+            filterDateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+        }
+
+        const myJobs = globalData.filter(row => {
+            const rowSale = row['Sale_26'] ? String(row['Sale_26']).trim() : '';
+            if (rowSale !== loggedInSaleName) return false;
+
+            if (filterDateObj) {
+                let rowDateObj = parseThaiDate(row['วันที่'] || '');
+                if (!rowDateObj || rowDateObj.getTime() !== filterDateObj.getTime()) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        const listContainer = document.getElementById('jobs-list');
+        listContainer.innerHTML = '';
+
+        if(myJobs.length === 0) {
+            if (filterDateStr) {
+                listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่มีงานในวันที่เลือกครับ</p>';
+            } else {
+                listContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center;">ไม่มีข้อมูลงานเลยครับ 🎉</p>';
+            }
+        } else {
+            myJobs.sort((a, b) => {
+                let da = parseThaiDate(a['วันที่'] || '');
+                let db = parseThaiDate(b['วันที่'] || '');
+                if(!da && !db) return 0;
+                if(!da) return 1;
+                if(!db) return -1;
+                return db.getTime() - da.getTime();
+            });
+
+            myJobs.forEach(job => {
+                const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
+                const location = job['สถานที่หน้างาน'] || '-';
+                const date = job['วันที่'] || '-';
+                const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : 'ยังไม่ระบุสถานะ';
+                
+                let statusColor = '#64748b';
+                if (currentStatus === 'ปิดการขาย') statusColor = '#10b981';
+                else if (currentStatus === 'งานหลุด' || currentStatus === 'ไม่รับงาน') statusColor = '#ef4444';
+
+                const card = document.createElement('div');
+                card.className = 'job-card';
+                card.innerHTML = `
+                    <div class="job-info">
+                        <h3>${custName} <span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">${currentStatus}</span></h3>
+                        <p>📅 วันที่พบ: ${date} | 📍 ${location}</p>
+                    </div>
+                    <div class="job-action">
+                        <button onclick="openModal('${encodeURIComponent(custName)}', '${encodeURIComponent(loggedInSaleName)}', '${encodeURIComponent(location)}')">อัปเดต</button>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
     }
 
     function openModal(encCust, encSale, encLoc) {
@@ -486,11 +492,9 @@
             return;
         }
 
-        // Convert YYYY-MM-DD to DD/MM/YYYY for Sheet
         const parts = dateStr.split('-');
         const formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
         
-        // Month string e.g. "มิ.ย. 66" (Optional, you can format it or let sheet handle it)
         const thaiMonths = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
         const monthIndex = parseInt(parts[1]) - 1;
         const year543 = parseInt(parts[0]) + 543;
@@ -523,9 +527,7 @@
             if(data.status === 'success') {
                 Swal.fire('สำเร็จ!', 'บันทึกข้อมูลเรียบร้อยแล้ว', 'success').then(() => {
                     closeModal();
-                    // เรายังไม่ดึงข้อมูลใหม่ทันที เพราะต้องรอ Google Sheet ประมวลผลและ Publish CSV
-                    // แต่เราสามารถลบการ์ดนี้ออกจากหน้าจอไปก่อนได้
-                    loadJobs(); 
+                    renderJobs();
                 });
             } else {
                 Swal.fire('เกิดข้อผิดพลาด', data.message || 'บันทึกไม่สำเร็จ', 'error');
