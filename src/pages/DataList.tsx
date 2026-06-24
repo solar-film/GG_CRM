@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import { Search, Info, Filter, Download } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, Info, Download } from 'lucide-react';
 
 export default function DataList() {
   const [records, setRecords] = useState<any[]>([]);
