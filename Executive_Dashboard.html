@@ -741,7 +741,7 @@
             <h1>งานหลุด <span id="filter-status">(แสดงข้อมูล: เดือนนี้)</span></h1>
         </div>
         <div>
-            <div id="last-update">อัปเดตข้อมูลล่าสุด: กำลังโหลด...</div>
+            <div id="last-update">อัปเดต: กำลังโหลด...</div>
             <button class="btn btn-primary" id="btn-print" onclick="window.print()">🖨️ พิมพ์ / PDF</button>
         </div>
     </header>
@@ -1092,7 +1092,7 @@
 
         function processData(data, sDate, eDate) {
             const now = new Date();
-            document.getElementById('last-update').innerText = `อัปเดตข้อมูลล่าสุด: ${now.toLocaleDateString('th-TH')} เวลา ${now.toLocaleTimeString('th-TH')} น.`;
+            document.getElementById('last-update').innerText = `อัปเดต: ${now.toLocaleDateString('th-TH')} ${now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.`;
 
             let totalJobs = 0;
             let totalArea = 0;
