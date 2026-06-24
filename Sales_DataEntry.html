@@ -283,17 +283,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 7%;">วันที่</th>
-                        <th style="width: 8%;">บริษัท</th>
-                        <th style="width: 7%;">ID</th>
-                        <th style="width: 12%;">ชื่อลูกค้า</th>
-                        <th style="width: 10%;">เบอร์โทร</th>
-                        <th style="width: 8%;">ช่องทาง</th>
-                        <th style="width: 8%;">ชื่อช่องทาง</th>
-                        <th style="width: 12%;">สถานที่หน้างาน</th>
-                        <th style="width: 7%;">พื้นที่ (ตร.ฟ.)</th>
-                        <th style="width: 8%;">สถานะ</th>
-                        <th style="width: 8%;">สาเหตุ</th>
+                        <th style="width: 10%;">วันที่</th>
+                        <th style="width: 10%;">บริษัท</th>
+                        <th style="width: 20%;">ชื่อลูกค้า</th>
+                        <th style="width: 12%;">เบอร์โทร</th>
+                        <th style="width: 20%;">สถานที่หน้างาน</th>
+                        <th style="width: 10%;">สถานะ</th>
+                        <th style="width: 13%;">สาเหตุ</th>
                         <th style="width: 5%; text-align: center;">จัดการ</th>
                     </tr>
                 </thead>
@@ -400,8 +396,7 @@
             for (let i = 3; i < rawData.length; i++) {
                 let obj = {};
                 for (let j = 0; j < headers.length; j++) {
-                    let headerName = headers[j];
-                    if (!headerName) continue;
+                    let headerName = headers[j] ? String(headers[j]).trim() : `Col_${j}`;
                     if (obj.hasOwnProperty(headerName)) {
                         headerName = headerName + '_' + j; // ป้องกันคอลัมน์ Sale ซ้ำกัน
                     }
@@ -581,13 +576,9 @@
             myJobs.forEach(job => {
                 const date = job['วันที่'] || '-';
                 const company = job['บริษัท'] || '-';
-                const jobId = job['ID'] || '-';
                 const custName = job['ชื่อลูกค้า'] || 'ไม่ระบุชื่อ';
-                const phone = job['เบอร์โทร'] || '-';
-                const channel = job['ช่องทาง'] || '-';
-                const channelName = job['ชื่อช่องทาง'] || '-';
+                const phone = job['เบอร์โทร'] || job['Col_12'] || '-';
                 const location = job['สถานที่หน้างาน'] || '-';
-                const area = job['พื้นที่'] || '-';
                 const currentStatus = job['สถานะ'] ? job['สถานะ'].trim() : '-';
                 const reason = job['สาเหตุ'] || '-';
                 
@@ -602,13 +593,9 @@
                 tr.innerHTML = `
                     <td>${date}</td>
                     <td>${company}</td>
-                    <td>${jobId}</td>
                     <td style="font-weight: 500;">${custName}</td>
                     <td>${phone}</td>
-                    <td>${channel}</td>
-                    <td>${channelName}</td>
                     <td style="font-size: 0.85rem;">${location}</td>
-                    <td>${area}</td>
                     <td><span style="font-size: 0.8rem; background: ${statusColor}; color: white; padding: 4px 10px; border-radius: 12px; white-space: nowrap;">${currentStatus}</span></td>
                     <td style="font-size: 0.85rem; color: #ef4444;">${reason}</td>
                     <td style="text-align: center;" class="job-action">
