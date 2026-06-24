@@ -370,6 +370,7 @@
             position: absolute;
             top: 0; left: 0; width: 100%; height: 3px;
         }
+        .kpi-card.c0::before { background: #eab308; }
         .kpi-card.c1::before { background: #10b981; }
         .kpi-card.c2::before { background: #2563eb; }
         .kpi-card.c3::before { background: #6366f1; }
@@ -782,6 +783,10 @@
     </div>
 
     <div class="kpi-container">
+        <div class="kpi-card c0">
+            <div class="kpi-title">💰 ยอดขายทั้งหมด</div>
+            <div class="kpi-value" id="kpi-total-sales">0 <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">บาท</span></div>
+        </div>
         <div class="kpi-card c1">
             <div class="kpi-title">🤝 พบลูกค้าใหม่ทั้งหมด</div>
             <div class="kpi-value" id="kpi-total-newcust">0 <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">งาน</span></div>
@@ -944,7 +949,7 @@
                     row._reason = row['สาเหตุ'] ? row['สาเหตุ'].trim() : '';
                     row._custType = row['ประเภท ลค.(1)'] ? row['ประเภท ลค.(1)'].trim() : '';
                     
-                    let salesRaw = row['ยอดรวม'];
+                    let salesRaw = row['ยอดรวม'] || row['Col AP'] || row['ยอดขาย'];
                     if (typeof salesRaw === 'string') salesRaw = salesRaw.replace(/,/g, '');
                     row._totalSales = parseFloat(salesRaw) || 0;
                     
@@ -1100,6 +1105,7 @@
             let totalNewCust = 0;
             let totalInstallCount = 0;
             let totalInstallArea = 0;
+            let totalSales = 0;
             
             const reasons = {};
             const salesData = {};
@@ -1134,6 +1140,7 @@
                         salesData[sale].install += row._totalSales;
                         totalInstallCount++;
                         totalInstallArea += area;
+                        totalSales += row._totalSales;
                     }
                 }
 
@@ -1227,6 +1234,7 @@
             document.getElementById('kpi-install-area').innerHTML = `${totalInstallArea.toLocaleString(undefined, {maximumFractionDigits: 0})} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">ตร.ฟ.</span>`;
             document.getElementById('kpi-total-jobs').innerHTML = `${totalJobs.toLocaleString()} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">งาน</span>`;
             document.getElementById('kpi-total-area').innerHTML = `${totalArea.toLocaleString(undefined, {maximumFractionDigits: 0})} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">ตร.ฟ.</span>`;
+            document.getElementById('kpi-total-sales').innerHTML = `${totalSales.toLocaleString()} <span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;">บาท</span>`;
         }
 
         // Functions for Modals
