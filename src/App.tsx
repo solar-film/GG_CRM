@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
+  LayoutDashboard,
   Users, 
   UserPlus, 
   Settings, 
@@ -11,13 +11,11 @@ import {
   Calendar,
   ClipboardList,
   FileText,
-  List,
-  UploadCloud
+  List
 } from 'lucide-react';
 import DataList from './pages/DataList';
 import DataForm from './pages/DataForm';
 import AdminSettings from './pages/AdminSettings';
-import ImportData from './pages/ImportData';
 import './index.css';
 
 // A helper component to display the dynamic top navbar title
@@ -171,10 +169,15 @@ function App() {
               <span>รายงาน</span>
             </NavLink>
             <div style={{ flex: 1, minHeight: '2rem' }}></div>
-            <NavLink to="/import" style={({isActive}) => sidebarNavStyle(isActive)}>
-              <UploadCloud size={24} />
-              <span>นำเข้าข้อมูล</span>
-            </NavLink>
+            <a
+              href="/Executive_Dashboard.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={sidebarNavStyle(false)}
+            >
+              <LayoutDashboard size={24} />
+              <span>งานหลุด</span>
+            </a>
             <NavLink to="/settings" style={({isActive}) => sidebarNavStyle(isActive)}>
               <Settings size={24} />
               <span>ตั้งค่า</span>
@@ -200,7 +203,6 @@ function App() {
             <Route path="/customers" element={<DataList />} />
             <Route path="/add" element={<DataForm />} />
             <Route path="/settings" element={<AdminSettings />} />
-            <Route path="/import" element={<ImportData />} />
           </Routes>
         </main>
       </div>
